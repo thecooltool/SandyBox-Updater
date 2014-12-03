@@ -4,6 +4,7 @@ Documentation, License etc.
 @package module
 '''
 
+import subprocess
 import tempfile
 import shutil
 import urllib2
@@ -13,6 +14,8 @@ import os
 
 tempPath = ''
 scriptVersion = 1
+rsaKey = '/home/alexander/machinekit/image/fat/ssh/id_rsa'
+gitHubUrl = 'https://raw.githubusercontent.com/thecooltool/Sandy-Box-Updater/master/'
 
 
 def createTempPath():
@@ -22,6 +25,16 @@ def createTempPath():
 
 def clearTempPath():
     shutil.rmtree(tempPath)
+    
+
+def exitScript(message):
+    sys.stderr.write(message)
+    sys.stderr.write('\n')
+    
+    if tempPath is not '':
+        clearTempPath()
+    
+    sys.exit(1)
 
 
 def formatSize(num, suffix='B'):
@@ -65,11 +78,11 @@ def downloadFile(url, filePath):
 def updateScript():
     createTempPath()
     
-    remoteFile = 'https://raw.githubusercontent.com/thecooltool/Sandy-Box-Updater/master/version.txt'
+    remoteFile = gitHubUrl + 'version.txt'
     localFile = os.path.join(tempPath, 'version.txt')
     currentScript = os.path.realpath(__file__)
     scriptName = os.path.basename(currentScript)
-    remoteScript = 'https://raw.githubusercontent.com/thecooltool/Sandy-Box-Updater/master/' + scriptName
+    remoteScript = gitHubUrl + scriptName
     localScript = os.path.join(tempPath, scriptName)
 
     downloadFile(remoteFile, localFile)
@@ -88,8 +101,60 @@ def updateScript():
     clearTempPath()
     return updated
 
+def runSshCommand(command):
+    lines = ''
+    fullCommand = 'ssh -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null machinekit@192.168.7.2' 
+    fullCommand = fullCommand.split(' ')
+    fullCommand.append(command)
+    
+    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    while(True):
+      retcode = p.poll() #returns None while subprocess is running
+      lines += p.stdout.readline()
+      if(retcode is not None):
+        break
+    
+    return lines
+
+def copyToHost(localFile, remoteFile):
+    lines = ''
+    fullCommand = 'scp -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' 
+    fullCommand = fullCommand.split(' ')
+    fullCommand.append(localFile)
+    fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
+    
+    sys.stdout.write("Copying " + os.path.basename(localFile) + " to remote host ...")
+    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    while(True):
+      retcode = p.poll() #returns None while subprocess is running
+      if(retcode is not None):
+        break
+    
+    sys.stdout.write("done\n")
+    return retcode
+
+def installPackage(package, name):
+    remotePackage = gitHubUrl + 'packages/' + package
+    localPackage = os.path.join(tempPath, package)
+    hostPackage = '~/' + package
+    
+    output = runSshCommand('source /etc/profile; dpkg-query -l ' + name + ' || echo not_installed')
+    if 'not_installed' in output:
+        downloadFile(remotePackage, localPackage)
+        copyToHost(localPackage, hostPackage)
+        sys.stdout.write('Intalling package ' + package + '...')
+        output = runSshCommand('source /etc/profile; sudo dpkg -i ' + hostPackage + ' || echo error')
+        if 'error' in output:
+            exitScript('installing package ' + package + ' failed')
+        sys.stdout.write('done\n')
 
 def main():
     createTempPath()
-    print('version: ' + str(scriptVersion))
+    
+    lines = runSshCommand('source /etc/profile; dpkg-query -l apt-offline || echo not_installed')
+    if 'not_installed' in lines:
+        print('oh noez')
+    
+    installPackage('apt-offline_1.2_all.deb', 'apt-offline')
+    
     clearTempPath()
