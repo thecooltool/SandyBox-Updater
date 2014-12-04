@@ -13,13 +13,21 @@ import os
 import json
 import urlparse
 import httplib
+import zipfile
 
 tempPath = ''
 scriptVersion = 1
-rsaKey = '/home/alexander/machinekit/image/fat/ssh/id_rsa'
+basePath = '../../'
+basePath = os.path.abspath(basePath)
+rsaKey = os.path.join(basePath, 'System/ssh/id_rsa')
+aptOfflineExec = os.path.join(basePath, 'System/update/apt-offline/apt-offline')
 gitHubUrl = 'https://raw.githubusercontent.com/thecooltool/Sandy-Box-Updater/master/'
-aptOfflineExec = '/home/alexander/bin/apt-offline/apt-offline'
+fatZipUrl = 'https://wolke.effet.info/public.php?service=files&t=116887a21e2b89c37351a59166dc77e4&download'
+fatShaUrl = 'https://wolke.effet.info/public.php?service=files&t=e3423c11f4dc65cb421b8bd8ad84218b&download'
 
+def info(message):
+    sys.stdout.write(message)
+    sys.stdout.flush()
 
 def createTempPath():
     global tempPath
@@ -67,14 +75,15 @@ def resolveHttpRedirect(url, depth=0):
     
     
 def downloadFile(url, filePath):
-    request = urllib2.Request(resolveHttpRedirect(url))
+    url = resolveHttpRedirect(url)
+    request = urllib2.Request(url)
     request.add_header('User-Agent', 'Mozilla/5.0') # Spoof request to prevent caching
     request.add_header('Pragma', 'no-cache')
     u = urllib2.build_opener().open(request)
     meta = u.info()
-    fileSize = int(meta.getheaders("Content-Length")[0])
+    fileSize = int(meta.getheader('content-length'))
     fileSizeStr = formatSize(fileSize)
-    print("Downloading: {0}".format(url.split('/')[-1]))
+    print("Downloading: {0}".format(os.path.basename(filePath)))
 
     f = open(filePath, 'wb')
     fileSizeDl = 0
@@ -90,9 +99,9 @@ def downloadFile(url, filePath):
         p = float(fileSizeDl) / fileSize
         status = r"{0}/{1}  [{2:.3%}]".format(fileSizeDlStr, fileSizeStr, p)
         status = status + chr(8)*(len(status)+1)
-        sys.stdout.write(status)
+        info(status)
 
-    sys.stdout.write('\n')
+    info('\n')
     f.close()
 
 
@@ -144,14 +153,14 @@ def copyToHost(localFile, remoteFile):
     fullCommand.append(localFile)
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
     
-    sys.stdout.write("Copying " + os.path.basename(localFile) + " to remote host ...")
+    info("Copying " + os.path.basename(localFile) + " to remote host ...")
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
       retcode = p.poll() #returns None while subprocess is running
       if(retcode is not None):
         break
     
-    sys.stdout.write(" done\n")
+    info(" done\n")
     return retcode
 
 def copyFromHost(remoteFile, localFile):
@@ -161,14 +170,14 @@ def copyFromHost(remoteFile, localFile):
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
     fullCommand.append(localFile)
     
-    sys.stdout.write("Copying " + os.path.basename(localFile) + " from remote host ...")
+    info("Copying " + os.path.basename(localFile) + " from remote host ...")
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
       retcode = p.poll() #returns None while subprocess is running
       if(retcode is not None):
         break
     
-    sys.stdout.write(" done\n")
+    info(" done\n")
     return retcode
 
 
@@ -193,24 +202,24 @@ def makeHostPath(remotePath):
 
 
 def unzipOnHost(zipFile, remotePath):
-    sys.stdout.write('unzipping ' + os.path.basename(remotePath) + ' ... ')
+    info('unzipping ' + os.path.basename(remotePath) + ' ... ')
     output = runSshCommand('unzip ' + zipFile + ' -d ' + remotePath + ' || echo unzipfailed')
     if 'unzipfailed' in output:
-        sys.stdout.write(' failed\n')
+        info(' failed\n')
         return False
     else:
-        sys.stdout.write(' done\n')
+        info(' done\n')
         return True
 
 
 def checkPackage(name):
-    sys.stdout.write('checking for package ' + name + ' ... ')
+    info('checking for package ' + name + ' ... ')
     output = runSshCommand('source /etc/profile; dpkg-query -l ' + name + ' || echo not_installed')
     if 'not_installed' in output:
-        sys.stdout.write('not installed\n')
+        info('not installed\n')
         return False
     else:
-        sys.stdout.write('installed\n')
+        info('installed\n')
         return True
 
 
@@ -223,11 +232,11 @@ def installPackage(package, name):
         
         downloadFile(remotePackage, localPackage)
         copyToHost(localPackage, hostPackage)
-        sys.stdout.write('Intalling package ' + package + ' ... ')
+        info('Intalling package ' + package + ' ... ')
         output = runSshCommand('source /etc/profile; sudo dpkg -i ' + hostPackage + ' || echo installerror')
         if 'installerror' in output:
             exitScript('installing package ' + package + ' failed')
-        sys.stdout.write('done\n')
+        info('done\n')
 
 
 def aptOfflineBase(command):
@@ -238,12 +247,12 @@ def aptOfflineBase(command):
     localBundle = os.path.join(tempPath, bundleName)
     hostBundle = '/tmp/' + bundleName
     
-    sys.stdout.write('updating repositories ...')
+    info('updating repositories ...')
     output = runSshCommand('sudo apt-offline set ' + command + ' ' + hostSig + ' || echo updateerror')
     if 'updateerror' in output:
         exitScript(' failed')
     else:
-        sys.stdout.write(' done\n')
+        info(' done\n')
     
     if copyFromHost(hostSig, localSig) != 0:
         exitScript('copy failed')
@@ -253,7 +262,7 @@ def aptOfflineBase(command):
         
     command = aptOfflineExec + ' get --threads 4 --bundle ' + localBundle + ' ' + localSig
     command = command.split(' ')
-    sys.stdout.write('local update ...')
+    info('local update ...')
     p = subprocess.Popen(command)
     while(True):
       retcode = p.poll() #returns None while subprocess is running
@@ -263,27 +272,27 @@ def aptOfflineBase(command):
     if retcode != 0:
         exitScript(' failed\n')
     else:
-        sys.stdout.write(' done\n')
+        info(' done\n')
         
     if copyToHost(localBundle, hostBundle) != 0:
         exitScript('copy failed')
         
-    sys.stdout.write('installing repository update ... ')
+    info('installing repository update ... ')
     output = runSshCommand('sudo apt-offline install ' + hostBundle + ' || echo installerror')
     if 'installerror' in output:
         exitScript(' failed')
     else:
-        sys.stdout.write(' done\n')
+        info(' done\n')
 
 
 def aptOfflineUpdate():
     aptOfflineBase('--update --upgrade')
-    sys.stdout.write('upgrading packages ... ')
+    info('upgrading packages ... ')
     output = runSshCommand('sudo apt-get upgrade -y || echo installerror')
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
-        sys.stdout.write(' done\n')
+        info(' done\n')
         
 def aptOfflineInstallPackages(names):
     namesList = names.split(' ')
@@ -297,15 +306,15 @@ def aptOfflineInstallPackages(names):
         return 
     
     aptOfflineBase('--install-packages ' + names + ' --update')
-    sys.stdout.write('installing packages ... ')
+    info('installing packages ... ')
     output = runSshCommand('sudo apt-get install -y ' + names + ' || echo installerror')
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
-        sys.stdout.write(' done\n')
+        info(' done\n')
     
-
-def compareGitRepo(user, repo, path):
+    
+def getGitRepoSha(user, repo):
     url = 'https://api.github.com/repos/' + user + '/' + repo + '/git/refs/heads/master'
     
     request = urllib2.Request(url)
@@ -323,7 +332,11 @@ def compareGitRepo(user, repo, path):
         data += buffer
         
     repoObject = json.loads(data)
-    remoteSha = repoObject['object']['sha']
+    return repoObject['object']['sha']
+
+
+def compareHostGitRepo(user, repo, path):
+    remoteSha = getGitRepoSha(user, repo)
     
     done = True
     output = runSshCommand('cd ' + path + ';git rev-parse HEAD || echo parseerror')
@@ -340,43 +353,60 @@ def compareGitRepo(user, repo, path):
     
     return remoteSha == hostSha
 
+def compareLocalGitRepo(user, repo, path):
+    remoteSha = getGitRepoSha(user, repo)
+    
+    shaFile = os.path.join(path, 'git-sha')
+    if os.path.exists(shaFile):
+        with open(shaFile) as f:
+            localSha = f.read().split('\n')[-1] # last line in sha file
+            f.close()
+            
+        return remoteSha == localSha
+    else:
+        return False
+    
 
 def downloadGitRepo(user, repo, path):
-    url = 'https://github.com/' + user + '/' + repo + '/archive/master.zip'
+    url = 'https://github.com/' + user + '/' + repo + '/zipball/master'
     downloadFile(url, path)
 
-def updateGitRepo(user, repo, path, commands):
+def updateHostGitRepo(user, repo, path, commands):
     necessary = False
     fileName = repo + '.zip'
     localFile = os.path.join(tempPath, fileName)
     hostFile = '/tmp/' + fileName
     shaFile = os.path.join(path, 'git-sha')
+    tmpPath = path + '-tmp'
     
-    sys.stdout.write('checking if git repo ' + repo + ' is up to date ... ')
+    info('checking if git repo ' + repo + ' is up to date ... ')
     if not checkHostPath(path):
         necessary = True
         
     if not necessary:
-        necessary = not compareGitRepo(user, repo, path)
+        necessary = not compareHostGitRepo(user, repo, path)
         
     if necessary:
-        sys.stdout.write(' not\n')
-        
-        if not removeHostPath(path):
-            exitScript('removing path failed')
+        info('not\n')
         
         downloadGitRepo(user, repo, localFile)
         
         if copyToHost(localFile, hostFile) != 0:
             exitScript('copy failed')
+            
+        if not removeHostPath(path):
+            exitScript('removing path failed')
+            
+        if not removeHostPath(tmpPath):
+            exitScript('removing tmp path failed')
         
-        if not unzipOnHost(hostFile, path + '-tmp'):
+        if not unzipOnHost(hostFile, tmpPath):
             exitScript('unzip failed')
             
-        if not moveHostPath(path + '-tmp/' + repo + '-master', path):
+        if not moveHostPath(tmpPath + '/' + user + '-' + repo + '-*', path):
             exitScript('move failed')
             
-        if not removeHostPath(path + '-tmp'):
+        if not removeHostPath(tmpPath):
             exitScript('remove failed')
             
         output = runSshCommand('unzip -z ' + hostFile + ' >> ' + shaFile  + ' || echo commanderror')
@@ -384,30 +414,149 @@ def updateGitRepo(user, repo, path, commands):
             exitScript('sha dump failed')
             
         for command in commands:
-            sys.stdout.write('executing ' + command + ' ... ')
+            if command == '':
+                continue
+            info('executing ' + command + ' ... ')
             output = runSshCommand('source /etc/profile; cd ' + path + '; ' + command + ' || echo commanderror')
             if 'commanderror' in output:
                 exitScript(' failed')
             else:
-                sys.stdout.write(' done\n')
-        
+                info(' done\n')
     else:
-        sys.stdout.write(' yes\n')
+        info('yes\n')
+        
+        
+def updateLocalGitRepo(user, repo, path):
+    necessary = False
+    fileName = repo + '.zip'
+    localFile = os.path.join(tempPath, fileName)
+    shaFile = os.path.join(path, 'git-sha')
+    tmpPath = os.path.join(tempPath, repo)
+    
+    
+    info('checking if git repo ' + repo + ' is up to date ... ')
+    if not os.path.exists(path):
+        necessary = True
+        
+    if not necessary:
+        necessary = not compareLocalGitRepo(user, repo, path)
+        
+    if necessary:
+        info('not\n')
+        
+        downloadGitRepo(user, repo, localFile)
+        
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        os.makedirs(path)
+            
+        if os.path.exists(tmpPath):
+            shutil.rmtree(tmpPath)
+        
+        info('Extracting zip file  ... ')
+        zipComment = ''
+        with zipfile.ZipFile(localFile, 'r') as zip:
+            zip.extractall(tmpPath)
+            zipComment = zip.comment
+            zip.close()
+        info('done\n')
+        
+        info('Moving files ... ')
+        repoDir = ''
+        for item in os.listdir(tmpPath):
+            repoDir = os.path.join(tmpPath, item)
+            if os.path.isdir(repoDir):
+                break
+        for item in os.listdir(repoDir):
+            itemPath = os.path.join(repoDir, item)
+            targetPath = os.path.join(path, item)
+            shutil.move(itemPath, targetPath)
+        shutil.rmtree(tmpPath)
+        info('done\n')
+        
+        info('Writing sha file ... ')
+        with open(shaFile, 'w') as f:
+            f.write(zipComment)
+            f.close()
+        info('done\n')
+    else:
+        info('yes\n')
+
+    
+def updateFat():
+    necessary = False
+    localShaFile = os.path.join(tempPath, 'fat.sha')
+    localZipFile = os.path.join(tempPath, 'fat.zip')
+    zipShaFile = os.path.join(basePath, 'System/update/zip.sha')
+            
+    # check local sha
+    info('checking if FAT partition is up to date ... ')
+    downloadFile(fatShaUrl, localShaFile)
+    with open(localShaFile) as f:
+        remoteSha = f.read()
+        f.close()
+        
+    if os.path.exists(zipShaFile):
+        with open(zipShaFile) as f:
+            localSha = f.read()
+            f.close()
+        
+        if localSha != remoteSha:
+            necessary = True
+    else:
+        necessary = True
+    
+    if necessary:
+        info('not\n')
+        
+        downloadFile(fatZipUrl, localZipFile)
+        
+        zipTmpPath = os.path.join(tempPath, 'fat')
+        info('Extracting zip file  ... ')
+        if os.path.exists(zipTmpPath):
+            shutil.rmtree(zipTmpPath)
+        with zipfile.ZipFile(localZipFile, 'r') as zip:
+            zip.extractall(tempPath)
+            zip.close()
+        info('done\n')
+        
+        info('Moving files ... ')
+        for item in os.listdir(zipTmpPath):
+            itemPath = os.path.join(zipTmpPath, item)
+            targetPath = os.path.join(basePath, item)
+            if os.path.exists(targetPath):
+                if os.path.isdir(targetPath):
+                    shutil.rmtree(targetPath)
+                else:
+                    os.remove(targetPath)
+            shutil.move(itemPath, targetPath)
+        shutil.rmtree(  )
+        info('done\n')
+        
+        info('Copying sha file ... ')
+        shutil.copyfile(localShaFile, zipShaFile)
+        info('done\n')
+    else:
+        info('yes\n')
     
 def main():
     createTempPath()
     
-    #installPackage('apt-offline_1.2_all.deb', 'apt-offline')
-    #aptOfflineUpdate()
-    #aptOfflineInstallPackages('machinekit-dev')
-    #aptOfflineInstallPackages('zip unzip')
-    
-    updateGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
-    #updateGitRepo('strahlex', 'mjpeg-streamer', '~/bin/mjpeg-streamer', [])
-    updateGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
-    updateGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+    updateFat()
     
     if not makeHostPath('~/nc_files/share'):
         exitScript('failed to create directory')
+    
+    installPackage('apt-offline_1.2_all.deb', 'apt-offline')
+    aptOfflineUpdate()
+    aptOfflineInstallPackages('machinekit-dev zip unzip')
+    
+    updateHostGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
+    updateHostGitRepo('strahlex', 'Cetus', '~/Cetus', [''])
+    updateHostGitRepo('strahlex', 'Machineface', '~/Machineface', [''])
+    #updateHostGitRepo('strahlex', 'mjpeg-streamer', '~/bin/mjpeg-streamer', [])
+    updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
+    updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+    updateLocalGitRepo('thecooltool', 'example-gcode', os.path.join(basePath, 'nc_files/examples'))
     
     clearTempPath()
