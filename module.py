@@ -74,11 +74,11 @@ def exitScript(message):
 
 def countFiles(directory):
     files = []
- 
+
     if os.path.isdir(directory):
         for path, dirs, filenames in os.walk(directory):
             files.extend(filenames)
- 
+
     return len(files)
 
 
@@ -89,13 +89,13 @@ def makedirs(dest):
         
 def moveFilesWithProgress(src, dest):
     numFiles = countFiles(src)
- 
+
     print("Moving {0} ...".format(os.path.basename(dest)))
     if numFiles > 0:
         makedirs(dest)
- 
+
         numCopied = 0
- 
+
         for path, dirs, filenames in os.walk(src):
             for directory in dirs:
                 destDir = path.replace(src,dest)
@@ -103,7 +103,7 @@ def moveFilesWithProgress(src, dest):
             
             for sfile in filenames:
                 srcFile = os.path.join(path, sfile)
- 
+
                 destFile = os.path.join(path.replace(src, dest), sfile)
                 
                 shutil.move(srcFile, destFile)
@@ -210,19 +210,24 @@ def updateScript():
     clearTempPath()
     return updated
 
+
 def runSshCommand(command):
     lines = ''
     fullCommand = sshExec.split(' ')
     fullCommand.append(command)
     
-    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
-      retcode = p.poll() #returns None while subprocess is running
-      lines += p.stdout.readline()
-      if(retcode is not None):
+    retcode = p.poll() #returns None while subprocess is running
+    line = p.stdout.readline()
+    if 'If you trust this host, enter "y" to add the key to' in line:
+            p.stdin.write('y\n')    # accept
+    lines += line
+    if(retcode is not None):
         break
     
     return lines
+
 
 def testSshConnection():
     info('Testing ssh connection ... ')
@@ -235,6 +240,7 @@ def testSshConnection():
         info('Make sure all drivers are installed and networking is working.\n')
         sys.exit(1)
 
+
 def copyToHost(localFile, remoteFile):
     lines = ''
     fullCommand = scpExec.split(' ')
@@ -242,7 +248,7 @@ def copyToHost(localFile, remoteFile):
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
     
     info("Copying " + os.path.basename(localFile) + " to remote host ...")
-    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
         retcode = p.poll() #returns None while subprocess is running
         line = p.stdout.readline()
@@ -254,6 +260,7 @@ def copyToHost(localFile, remoteFile):
     info(" done\n")
     return retcode
 
+
 def copyFromHost(remoteFile, localFile):
     lines = ''
     fullCommand = scpExec.split(' ')
@@ -261,7 +268,7 @@ def copyFromHost(remoteFile, localFile):
     fullCommand.append(localFile)
     
     info("Copying " + os.path.basename(localFile) + " from remote host ...")
-    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin = subprocess.PIPE)
+    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin = subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
         retcode = p.poll() #returns None while subprocess is running
         line = p.stdout.readline()
@@ -357,8 +364,8 @@ def aptOfflineBase(command):
     info('local update ...')
     p = subprocess.Popen(command)
     while(True):
-      retcode = p.poll() #returns None while subprocess is running
-      if(retcode is not None):
+    retcode = p.poll() #returns None while subprocess is running
+    if(retcode is not None):
         break
     
     if retcode != 0:
@@ -626,7 +633,7 @@ def updateFat(dirName, zipCode, shaCode):
                     shutil.rmtree(targetPath)
                 else:
                     os.remove(targetPath)
-             
+            
             # Moving with workaround for problem on Windows
             if os.path.isdir(itemPath):
                 info('Moving directory ' + item + '\n')
@@ -636,13 +643,17 @@ def updateFat(dirName, zipCode, shaCode):
                         retries += 1
                         moveFilesWithProgress(itemPath, targetPath)
                         break
-                    except WindowsError as e:
+                    except WindowsError:
                         if retries < 3:  # Trying 3 times
                             time.sleep(1)
                         else:
                             throw        # Then throw
-            else:
-                shutil.copy(itemPath, targetPath)
+            else:                
+                try:
+                    shutil.move(itemPath, targetPath)
+                    break
+                except IOError:
+                    info('Warning! Can not move file ' + item + '\n')  # virus scanner?
         shutil.rmtree(zipTmpPath)
         info('done\n')
         
@@ -712,7 +723,6 @@ def main():
     if platform.system() == 'Windows':  # check open applications
         checkWindowsProcesses()
     
-    testSshConnection()
     createTempPath()
     
     updateFat('Windows', '54ae29d8d0420dfd78d7a2466fa09a40', '1657018afa545b87e2b5d51863d60b34')
@@ -721,6 +731,8 @@ def main():
     updateFat('Doc', '7aaf5ae4aa1194a1d7e5c481824bdae3', 'e22919092f76ba8a87fce4ed885376df')
     updateFat('Other', '5d484f1887937e22ceada1bb916e863d', '0f44627c04c56a7e55e590268a21329b')
     
+    testSshConnection()
+        
     if not makeHostPath('~/nc_files/share'):
         exitScript('failed to create directory')
     
@@ -737,3 +749,7 @@ def main():
     updateLocalGitRepo('thecooltool', 'example-gcode', os.path.join(basePath, 'nc_files/examples'))
     
     clearTempPath()
+    
+    info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
+    info('Update successfully finished!\n')
+    info('You can now close the terminal window\n')
