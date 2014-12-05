@@ -1,5 +1,8 @@
 '''
-Documentation, License etc.
+Sandy-Box updater script
+Updates the Sandy-Box controller from TheCoolTool (thecooltool.com)
+
+Copyright 2014 Alexaner Roessler @ TheCoolTool
 
 @package module
 '''
@@ -15,7 +18,9 @@ import urlparse
 import httplib
 import zipfile
 import platform
+import time
 
+# Global variables
 tempPath = ''
 scriptVersion = 1
 basePath = '../../'
@@ -28,6 +33,7 @@ scpExec = ''
 
 
 def init():
+    """ Initializes global variables for the specific system """
     global sshExec
     global scpExec
     system = platform.system()
@@ -38,18 +44,21 @@ def init():
         sshExec = 'ssh -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null machinekit@192.168.7.2' 
         scpExec = 'scp -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' 
 
-    
+
 def info(message):
+    """ Displays a info message """
     sys.stdout.write(message)
     sys.stdout.flush()
 
 
 def createTempPath():
+    """ Creates a temporary path """
     global tempPath
     tempPath = tempfile.mkdtemp(prefix='sandy-box-updater')
 
 
 def clearTempPath():
+    """ Removes a temporary path """
     shutil.rmtree(tempPath)
     
 
@@ -63,6 +72,52 @@ def exitScript(message):
     sys.exit(1)
 
 
+def countFiles(directory):
+    files = []
+ 
+    if os.path.isdir(directory):
+        for path, dirs, filenames in os.walk(directory):
+            files.extend(filenames)
+ 
+    return len(files)
+
+
+def makedirs(dest):
+    if not os.path.exists(dest):
+        os.makedirs(dest)
+        
+        
+def moveFilesWithProgress(src, dest):
+    numFiles = countFiles(src)
+ 
+    print("Moving {0} ...".format(os.path.basename(dest)))
+    if numFiles > 0:
+        makedirs(dest)
+ 
+        numCopied = 0
+ 
+        for path, dirs, filenames in os.walk(src):
+            for directory in dirs:
+                destDir = path.replace(src,dest)
+                makedirs(os.path.join(destDir, directory))
+            
+            for sfile in filenames:
+                srcFile = os.path.join(path, sfile)
+ 
+                destFile = os.path.join(path.replace(src, dest), sfile)
+                
+                shutil.move(srcFile, destFile)
+                
+                numCopied += 1
+                
+                p = float(numCopied) / float(numFiles)
+                status = r"{0}/{1}  [{2:.3%}]".format(numCopied, numFiles, p)
+                status = status + chr(8)*(len(status)+1)
+                info(status)
+                
+        info('\n')
+                
+        
 def formatSize(num, suffix='B'):
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
@@ -71,8 +126,8 @@ def formatSize(num, suffix='B'):
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
 
-# Recursively follow redirects until there isn't a location header
 def resolveHttpRedirect(url, depth=0):
+    """ Recursively follow redirects until there isn't a location header """
     if depth > 10:
         raise Exception("Redirected "+depth+" times, giving up.")
     o = urlparse.urlparse(url,allow_fragments=True)
@@ -102,7 +157,7 @@ def downloadFile(url, filePath):
             break
     fileSize = int(contentLength)
     fileSizeStr = formatSize(fileSize)
-    print("Downloading: {0}".format(os.path.basename(filePath)))
+    print("Downloading {0} ...".format(os.path.basename(filePath)))
 
     f = open(filePath, 'wb')
     fileSizeDl = 0
@@ -134,6 +189,7 @@ def updateScript():
     remoteScript = gitHubUrl + scriptName
     localScript = os.path.join(tempPath, scriptName)
 
+    info('Checking if updater is up to date ... \n')
     downloadFile(remoteFile, localFile)
 
     remoteVersion = 0
@@ -142,11 +198,15 @@ def updateScript():
 
     updated = False
     if remoteVersion > scriptVersion:
-        print('Updating update script')
+        info('not\n')
+        info('Updating update script ... \n')
         downloadFile(remoteScript, localScript)
         shutil.copyfile(localScript, currentScript)
         update = True
-    
+        info('done\n')
+    else:
+        info('yes\n')
+        
     clearTempPath()
     return updated
 
@@ -246,7 +306,7 @@ def unzipOnHost(zipFile, remotePath):
 
 
 def checkPackage(name):
-    info('checking for package ' + name + ' ... ')
+    info('Checking for package ' + name + ' ... ')
     output = runSshCommand('source /etc/profile; dpkg-query -l ' + name + ' || echo not_installed')
     if 'not_installed' in output:
         info('not installed\n')
@@ -411,7 +471,7 @@ def updateHostGitRepo(user, repo, path, commands):
     shaFile = path + '/git-sha'
     tmpPath = path + '-tmp'
     
-    info('checking if git repo ' + repo + ' is up to date ... ')
+    info('Checking if git repo ' + repo + ' is up to date ... ')
     if not checkHostPath(path):
         necessary = True
         
@@ -466,7 +526,7 @@ def updateLocalGitRepo(user, repo, path):
     tmpPath = os.path.join(tempPath, repo)
     
     
-    info('checking if git repo ' + repo + ' is up to date ... ')
+    info('Checking if git repo ' + repo + ' is up to date ... ')
     if not os.path.exists(path):
         necessary = True
         
@@ -524,7 +584,7 @@ def updateFat(dirName, zipCode, shaCode):
     remoteShaUrl = 'https://wolke.effet.info/public.php?service=files&t=' + shaCode + '&download'
             
     # check local sha
-    info('checking if ' + dirName + ' on FAT partition is up to date ... ')
+    info('Checking if ' + dirName + ' on FAT partition is up to date ... \n')
     downloadFile(remoteShaUrl, localShaFile)
     with open(localShaFile) as f:
         remoteSha = f.read()
@@ -554,16 +614,35 @@ def updateFat(dirName, zipCode, shaCode):
             zip.close()
         info('done\n')
         
-        info('Moving files ... ')
+        info('Moving files ... \n')
         for item in os.listdir(zipTmpPath):
             itemPath = os.path.join(zipTmpPath, item)
             targetPath = os.path.join(basePath, item)
+            
+            # Remove old dirs and files
             if os.path.exists(targetPath):
                 if os.path.isdir(targetPath):
+                    info('Removing directory ' + item + '\n')
                     shutil.rmtree(targetPath)
                 else:
                     os.remove(targetPath)
-            shutil.move(itemPath, targetPath)
+             
+            # Moving with workaround for problem on Windows
+            if os.path.isdir(itemPath):
+                info('Moving directory ' + item + '\n')
+                retries = 0
+                while True:
+                    try:
+                        retries += 1
+                        moveFilesWithProgress(itemPath, targetPath)
+                        break
+                    except WindowsError as e:
+                        if retries < 3:  # Trying 3 times
+                            time.sleep(1)
+                        else:
+                            throw        # Then throw
+            else:
+                shutil.copy(itemPath, targetPath)
         shutil.rmtree(zipTmpPath)
         info('done\n')
         
@@ -589,32 +668,50 @@ def proceedMessage():
             info('wrong input, please try again\n')
     
 
-def checkWindowsProcesses(execs):
+def checkWindowsProcessesBase(execs):
     cmd = 'WMIC PROCESS get Commandline'
+    info('Checking running applications...\n')
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     for line in proc.stdout:
         for entry in execs:
             execPath = os.path.join(basePath, entry[1])
             if execPath in line:
                 info('Please close ' + entry[0] + ' before updating\n')
+                return False
+    return True
+
+
+def checkWindowsProcesses():
+    execs = [['Notepad++', 'Windows\\Utils\\Notepad++\\notepad++.exe'],
+            ['WinSCPPortable', 'Windows\\Utils\\WinSCPPortable\\WinSCPPortable++.exe'],
+            ['Putty', 'Windows\\Utils\\Xming\\PAGEANT.EXE'],
+            ['Putty', 'Windows\\Utils\\Xming\\plink.exe'],
+            ['Putty', 'Windows\\Utils\\Xming\\PSCP.EXE'],
+            ['Putty', 'Windows\\Utils\\Xming\\PSFTP.EXE'],
+            ['Putty', 'Windows\\Utils\\Xming\\putty.exe'],
+            ['Putty', 'Windows\\Utils\\Xming\\PUTTYGEN.EXE'],
+            ['Xming', 'Windows\\Utils\\Xming\\xkbcomp.exe'],
+            ['Xming', 'Windows\\Utils\\Xming\\Xming.exe']]
+    
+    while checkWindowsProcessesBase(execs) is False:
+        while True:
+            info('Check again? (y/n): ')
+            proceed = sys.stdin.readline().strip()
+            if proceed == 'n':
                 sys.exit(1)
                 return
+            elif proceed == 'y':
+                break
+            else:
+                info('wrong input, please try again\n')
+
 
 def main():
     init()
     
     if platform.system() == 'Windows':  # check open applications
-        execs = [['Notepad++', 'Window\\Utils\\Notepad++\\notepad++.exe'],
-                ['WinSCPPortable', 'Windows\\Utils\\WinSCPPortable\\WinSCPPortable++.exe'],
-                ['Putty', 'Windows\\Utils\\Xming\\PAGEANT.EXE'],
-                ['Putty', 'Windows\\Utils\\Xming\\plink.exe'],
-                ['Putty', 'Windows\\Utils\\Xming\\PSCP.EXE'],
-                ['Putty', 'Windows\\Utils\\Xming\\PSFTP.EXE'],
-                ['Putty', 'Windows\\Utils\\Xming\\putty.exe'],
-                ['Putty', 'Windows\\Utils\\Xming\\PUTTYGEN.EXE'],
-                ['Xming', 'Windows\\Utils\\Xming\\xkbcomp.exe'],
-                ['Xming', 'Windows\\Utils\\Xming\\Xming.exe']]
-        checkWindowsProcesses(execs)
+        checkWindowsProcesses()
+    
     testSshConnection()
     createTempPath()
     
