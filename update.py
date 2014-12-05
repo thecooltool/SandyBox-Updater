@@ -5,6 +5,8 @@ Documentation, License etc.
 '''
 import module
 
+module.proceedMessage()
+
 if module.updateScript():
     import module
     reload(module)

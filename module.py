@@ -14,20 +14,35 @@ import json
 import urlparse
 import httplib
 import zipfile
+import platform
 
 tempPath = ''
 scriptVersion = 1
 basePath = '../../'
 basePath = os.path.abspath(basePath)
 rsaKey = os.path.join(basePath, 'System/ssh/id_rsa')
-aptOfflineExec = os.path.join(basePath, 'System/update/apt-offline/apt-offline')
+aptOfflineExec = sys.executable + ' ' + os.path.join(basePath, 'System/update/apt-offline/apt-offline')
 gitHubUrl = 'https://raw.githubusercontent.com/thecooltool/Sandy-Box-Updater/master/'
-fatZipUrl = 'https://wolke.effet.info/public.php?service=files&t=116887a21e2b89c37351a59166dc77e4&download'
-fatShaUrl = 'https://wolke.effet.info/public.php?service=files&t=e3423c11f4dc65cb421b8bd8ad84218b&download'
+sshExec = ''
+scpExec = ''
 
+
+def init():
+    global sshExec
+    global scpExec
+    system = platform.system()
+    if system == 'Windows':
+        sshExec = os.path.join(basePath, 'Windows\Utils\Xming\plink.exe') + ' -pw machinekit -ssh -2 -X machinekit@192.168.7.2'
+        scpExec = os.path.join(basePath, 'Windows\Utils\Xming\pscp.exe') + ' -pw machinekit'
+    else:
+        sshExec = 'ssh -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null machinekit@192.168.7.2' 
+        scpExec = 'scp -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' 
+
+    
 def info(message):
     sys.stdout.write(message)
     sys.stdout.flush()
+
 
 def createTempPath():
     global tempPath
@@ -76,12 +91,16 @@ def resolveHttpRedirect(url, depth=0):
     
 def downloadFile(url, filePath):
     url = resolveHttpRedirect(url)
-    request = urllib2.Request(url)
-    request.add_header('User-Agent', 'Mozilla/5.0') # Spoof request to prevent caching
-    request.add_header('Pragma', 'no-cache')
-    u = urllib2.build_opener().open(request)
-    meta = u.info()
-    fileSize = int(meta.getheader('content-length'))
+    while True:
+        request = urllib2.Request(url)
+        request.add_header('User-Agent', 'Mozilla/5.0') # Spoof request to prevent caching
+        request.add_header('Pragma', 'no-cache')
+        u = urllib2.build_opener().open(request)
+        meta = u.info()
+        contentLength = meta.getheader('content-length')
+        if contentLength is not None:   # loop until request is valid
+            break
+    fileSize = int(contentLength)
     fileSizeStr = formatSize(fileSize)
     print("Downloading: {0}".format(os.path.basename(filePath)))
 
@@ -133,8 +152,7 @@ def updateScript():
 
 def runSshCommand(command):
     lines = ''
-    fullCommand = 'ssh -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null machinekit@192.168.7.2' 
-    fullCommand = fullCommand.split(' ')
+    fullCommand = sshExec.split(' ')
     fullCommand.append(command)
     
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -146,36 +164,51 @@ def runSshCommand(command):
     
     return lines
 
+def testSshConnection():
+    info('Testing ssh connection ... ')
+    output = runSshCommand('echo testssh')
+    if 'testssh' in output:
+        info('ok\n')
+    else:
+        info('failed\n')
+        info('Please check your Sandy-Box is properly connected to the computer.\n')
+        info('Make sure all drivers are installed and networking is working.\n')
+        sys.exit(1)
+
 def copyToHost(localFile, remoteFile):
     lines = ''
-    fullCommand = 'scp -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' 
-    fullCommand = fullCommand.split(' ')
+    fullCommand = scpExec.split(' ')
     fullCommand.append(localFile)
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
     
     info("Copying " + os.path.basename(localFile) + " to remote host ...")
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
-      retcode = p.poll() #returns None while subprocess is running
-      if(retcode is not None):
-        break
+        retcode = p.poll() #returns None while subprocess is running
+        line = p.stdout.readline()
+        if 'If you trust this host, enter "y" to add the key to' in line:
+            p.stdin.write('y\n')    # accept
+        if(retcode is not None):
+            break
     
     info(" done\n")
     return retcode
 
 def copyFromHost(remoteFile, localFile):
     lines = ''
-    fullCommand = 'scp -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' 
-    fullCommand = fullCommand.split(' ')
+    fullCommand = scpExec.split(' ')
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
     fullCommand.append(localFile)
     
     info("Copying " + os.path.basename(localFile) + " from remote host ...")
-    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin = subprocess.PIPE)
     while(True):
-      retcode = p.poll() #returns None while subprocess is running
-      if(retcode is not None):
-        break
+        retcode = p.poll() #returns None while subprocess is running
+        line = p.stdout.readline()
+        if 'If you trust this host, enter "y" to add the key to' in line:
+            p.stdin.write('y\n')	# accept
+        if(retcode is not None):
+            break
     
     info(" done\n")
     return retcode
@@ -226,10 +259,9 @@ def checkPackage(name):
 def installPackage(package, name):
     remotePackage = gitHubUrl + 'packages/' + package
     localPackage = os.path.join(tempPath, package)
-    hostPackage = '~/' + package
+    hostPackage = '/tmp/' + package
     
     if not checkPackage(name):
-        
         downloadFile(remotePackage, localPackage)
         copyToHost(localPackage, hostPackage)
         info('Intalling package ' + package + ' ... ')
@@ -344,7 +376,7 @@ def compareHostGitRepo(user, repo, path):
         done = False
         
     if not done:    # remote is not git repo, try to read sha file
-        shaFile = os.path.join(path, 'git-sha')
+        shaFile = path + '/git-sha'  # os path join would fail on Windows
         output = runSshCommand('cat ' + shaFile + ' || echo parseerror')
         if 'parseerror' in output:
             return False
@@ -376,7 +408,7 @@ def updateHostGitRepo(user, repo, path, commands):
     fileName = repo + '.zip'
     localFile = os.path.join(tempPath, fileName)
     hostFile = '/tmp/' + fileName
-    shaFile = os.path.join(path, 'git-sha')
+    shaFile = path + '/git-sha'
     tmpPath = path + '-tmp'
     
     info('checking if git repo ' + repo + ' is up to date ... ')
@@ -483,15 +515,17 @@ def updateLocalGitRepo(user, repo, path):
         info('yes\n')
 
     
-def updateFat():
+def updateFat(dirName, zipCode, shaCode):
     necessary = False
-    localShaFile = os.path.join(tempPath, 'fat.sha')
-    localZipFile = os.path.join(tempPath, 'fat.zip')
-    zipShaFile = os.path.join(basePath, 'System/update/zip.sha')
+    localShaFile = os.path.join(tempPath, dirName + '.sha')
+    localZipFile = os.path.join(tempPath, dirName + '.zip')
+    zipShaFile = os.path.join(basePath, 'System/update/sha/' + dirName + '.sha')
+    remoteZipUrl = 'https://wolke.effet.info/public.php?service=files&t=' + zipCode + '&download'
+    remoteShaUrl = 'https://wolke.effet.info/public.php?service=files&t=' + shaCode + '&download'
             
     # check local sha
-    info('checking if FAT partition is up to date ... ')
-    downloadFile(fatShaUrl, localShaFile)
+    info('checking if ' + dirName + ' on FAT partition is up to date ... ')
+    downloadFile(remoteShaUrl, localShaFile)
     with open(localShaFile) as f:
         remoteSha = f.read()
         f.close()
@@ -509,7 +543,7 @@ def updateFat():
     if necessary:
         info('not\n')
         
-        downloadFile(fatZipUrl, localZipFile)
+        downloadFile(remoteZipUrl, localZipFile)
         
         zipTmpPath = os.path.join(tempPath, 'fat')
         info('Extracting zip file  ... ')
@@ -530,7 +564,7 @@ def updateFat():
                 else:
                     os.remove(targetPath)
             shutil.move(itemPath, targetPath)
-        shutil.rmtree(  )
+        shutil.rmtree(zipTmpPath)
         info('done\n')
         
         info('Copying sha file ... ')
@@ -538,11 +572,57 @@ def updateFat():
         info('done\n')
     else:
         info('yes\n')
+
     
+def proceedMessage():
+    info('This script will update the Sandy-Box system.\n')
+    info('The update script will download a lot of data.\n')
+    while True:
+        info('Do you want to proceed? (y/n): ')
+        proceed = sys.stdin.readline().strip()
+        if proceed == 'n':
+            sys.exit(1)
+            return
+        elif proceed == 'y':
+            break
+        else:
+            info('wrong input, please try again\n')
+    
+
+def checkWindowsProcesses(execs):
+    cmd = 'WMIC PROCESS get Commandline'
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    for line in proc.stdout:
+        for entry in execs:
+            execPath = os.path.join(basePath, entry[1])
+            if execPath in line:
+                info('Please close ' + entry[0] + ' before updating\n')
+                sys.exit(1)
+                return
+
 def main():
+    init()
+    
+    if platform.system() == 'Windows':  # check open applications
+        execs = [['Notepad++', 'Window\\Utils\\Notepad++\\notepad++.exe'],
+                ['WinSCPPortable', 'Windows\\Utils\\WinSCPPortable\\WinSCPPortable++.exe'],
+                ['Putty', 'Windows\\Utils\\Xming\\PAGEANT.EXE'],
+                ['Putty', 'Windows\\Utils\\Xming\\plink.exe'],
+                ['Putty', 'Windows\\Utils\\Xming\\PSCP.EXE'],
+                ['Putty', 'Windows\\Utils\\Xming\\PSFTP.EXE'],
+                ['Putty', 'Windows\\Utils\\Xming\\putty.exe'],
+                ['Putty', 'Windows\\Utils\\Xming\\PUTTYGEN.EXE'],
+                ['Xming', 'Windows\\Utils\\Xming\\xkbcomp.exe'],
+                ['Xming', 'Windows\\Utils\\Xming\\Xming.exe']]
+        checkWindowsProcesses(execs)
+    testSshConnection()
     createTempPath()
     
-    updateFat()
+    updateFat('Windows', '54ae29d8d0420dfd78d7a2466fa09a40', '1657018afa545b87e2b5d51863d60b34')
+    updateFat('Linux', '3426231688a24d36d9d18e94f8a8c9ff', 'ed0ee4b645a706048bab687129bf3967')
+    updateFat('Mac', '2eea41e315b930a1dd5a700221b6f280', '14bd0a2f48dc4f7f72755956bdf5a6cc')
+    updateFat('Doc', '7aaf5ae4aa1194a1d7e5c481824bdae3', 'e22919092f76ba8a87fce4ed885376df')
+    updateFat('Other', '5d484f1887937e22ceada1bb916e863d', '0f44627c04c56a7e55e590268a21329b')
     
     if not makeHostPath('~/nc_files/share'):
         exitScript('failed to create directory')
