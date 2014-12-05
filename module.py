@@ -185,7 +185,7 @@ def updateScript():
     remoteFile = gitHubUrl + 'version.txt'
     localFile = os.path.join(tempPath, 'version.txt')
     currentScript = os.path.realpath(__file__)
-    scriptName = os.path.basename(currentScript)
+    scriptName = 'module.py'
     remoteScript = gitHubUrl + scriptName
     localScript = os.path.join(tempPath, scriptName)
 
