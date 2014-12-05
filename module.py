@@ -22,7 +22,7 @@ import time
 
 # Global variables
 tempPath = ''
-scriptVersion = 1
+scriptVersion = 2
 basePath = '../../'
 basePath = os.path.abspath(basePath)
 rsaKey = os.path.join(basePath, 'System/ssh/id_rsa')
