@@ -17,8 +17,11 @@ import json
 import urlparse
 import httplib
 import zipfile
+import tarfile
 import platform
 import time
+import threading
+import errno
 
 # Global variables
 tempPath = ''
@@ -62,9 +65,10 @@ def clearTempPath():
     shutil.rmtree(tempPath)
     
 
-def exitScript(message):
-    sys.stderr.write(message)
-    sys.stderr.write('\n')
+def exitScript(message=None):
+    if message is not None:
+        sys.stderr.write(message)
+        sys.stderr.write('\n')
     
     if tempPath is not '':
         clearTempPath()
@@ -90,7 +94,7 @@ def makedirs(dest):
 def moveFilesWithProgress(src, dest):
     numFiles = countFiles(src)
 
-    print("Moving {0} ...".format(os.path.basename(dest)))
+    print("Moving directory {0} ...".format(os.path.basename(dest)))
     if numFiles > 0:
         makedirs(dest)
 
@@ -116,7 +120,29 @@ def moveFilesWithProgress(src, dest):
                 info(status)
                 
         info('\n')
+        
+        
+def removeFilesWithProgress(path):
+    numFiles = countFiles(path)
+
+    print("Removing directory {0} ...".format(os.path.basename(path)))
+    if numFiles > 0:
+        numRemoved = 0
+
+        for path, dirs, filenames in os.walk(path):
+            
+            for sfile in filenames:
+                filePath = os.path.join(path, sfile)
+                os.remove(filePath)
+                numRemoved += 1
                 
+                p = float(numRemoved) / float(numFiles)
+                status = r"{0}/{1}  [{2:.3%}]".format(numRemoved, numFiles, p)
+                status = status + chr(8)*(len(status)+1)
+                info(status)
+    
+    info('\n')
+    shutil.rmtree(path)  # remove empty dirs
         
 def formatSize(num, suffix='B'):
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
@@ -130,7 +156,7 @@ def resolveHttpRedirect(url, depth=0):
     """ Recursively follow redirects until there isn't a location header """
     if depth > 10:
         raise Exception("Redirected "+depth+" times, giving up.")
-    o = urlparse.urlparse(url,allow_fragments=True)
+    o = urlparse.urlparse(url, allow_fragments=True)
     conn = httplib.HTTPConnection(o.netloc)
     path = o.path
     if o.query:
@@ -206,39 +232,59 @@ def updateScript():
         info('done\n')
     else:
         info('yes\n')
-        
+
     clearTempPath()
     return updated
 
 
-def runSshCommand(command):
+def processTimeout(p):
+    if p.poll() is None:
+        try:
+            p.kill()
+            info('Error: process taking too long to complete -- terminating\n')
+        except OSError as e:
+            if e.errno != errno.ESRCH:
+                raise
+    
+
+def runSshCommand(command, timeout=0.0):
     lines = ''
+    timer = None
     fullCommand = sshExec.split(' ')
     fullCommand.append(command)
-    
+
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if timeout != 0.0:
+        timer = threading.Timer(timeout, processTimeout, [p])
+        timer.start()
+
     while(True):
-    retcode = p.poll() #returns None while subprocess is running
-    line = p.stdout.readline()
-    if 'If you trust this host, enter "y" to add the key to' in line:
-            p.stdin.write('y\n')    # accept
-    lines += line
-    if(retcode is not None):
-        break
-    
+        retcode = p.poll()  # returns None while subprocess is running
+
+        line = p.stdout.readline()
+        if 'If you trust this host, enter "y" to add the key to' in line:
+                p.stdin.write('y\n')    # accept
+        lines += line
+
+        if(retcode is not None):
+            break
+
+    if timer is not None:
+        timer.cancel()
+
     return lines
 
 
 def testSshConnection():
     info('Testing ssh connection ... ')
-    output = runSshCommand('echo testssh')
+    output = runSshCommand('echo testssh', 10.0)
     if 'testssh' in output:
         info('ok\n')
     else:
-        info('failed\n')
-        info('Please check your Sandy-Box is properly connected to the computer.\n')
-        info('Make sure all drivers are installed and networking is working.\n')
-        sys.exit(1)
+        info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
+        info('Please check if your Sandy-Box is connected to the computer.\n')
+        info('Make sure all drivers are installed and networking is working correctly.\n')
+        exitScript()
 
 
 def copyToHost(localFile, remoteFile):
@@ -246,11 +292,11 @@ def copyToHost(localFile, remoteFile):
     fullCommand = scpExec.split(' ')
     fullCommand.append(localFile)
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
-    
+
     info("Copying " + os.path.basename(localFile) + " to remote host ...")
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
-        retcode = p.poll() #returns None while subprocess is running
+        retcode = p.poll()  # returns None while subprocess is running
         line = p.stdout.readline()
         if 'If you trust this host, enter "y" to add the key to' in line:
             p.stdin.write('y\n')    # accept
@@ -270,10 +316,10 @@ def copyFromHost(remoteFile, localFile):
     info("Copying " + os.path.basename(localFile) + " from remote host ...")
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin = subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
-        retcode = p.poll() #returns None while subprocess is running
+        retcode = p.poll()  # returns None while subprocess is running
         line = p.stdout.readline()
         if 'If you trust this host, enter "y" to add the key to' in line:
-            p.stdin.write('y\n')	# accept
+            p.stdin.write('y\n')  # accept
         if(retcode is not None):
             break
     
@@ -364,9 +410,9 @@ def aptOfflineBase(command):
     info('local update ...')
     p = subprocess.Popen(command)
     while(True):
-    retcode = p.poll() #returns None while subprocess is running
-    if(retcode is not None):
-        break
+        retcode = p.poll()  # returns None while subprocess is running
+        if(retcode is not None):
+            break
     
     if retcode != 0:
         exitScript(' failed\n')
@@ -582,12 +628,12 @@ def updateLocalGitRepo(user, repo, path):
         info('yes\n')
 
     
-def updateFat(dirName, zipCode, shaCode):
+def updateFat(dirName, fileCode, shaCode):
     necessary = False
     localShaFile = os.path.join(tempPath, dirName + '.sha')
-    localZipFile = os.path.join(tempPath, dirName + '.zip')
-    zipShaFile = os.path.join(basePath, 'System/update/sha/' + dirName + '.sha')
-    remoteZipUrl = 'https://wolke.effet.info/public.php?service=files&t=' + zipCode + '&download'
+    localTarFile = os.path.join(tempPath, dirName + '.tar.bz2')
+    tarShaFile = os.path.join(basePath, 'System/update/sha/' + dirName + '.sha')
+    remoteTarUrl = 'https://wolke.effet.info/public.php?service=files&t=' + fileCode + '&download'
     remoteShaUrl = 'https://wolke.effet.info/public.php?service=files&t=' + shaCode + '&download'
             
     # check local sha
@@ -597,8 +643,8 @@ def updateFat(dirName, zipCode, shaCode):
         remoteSha = f.read()
         f.close()
         
-    if os.path.exists(zipShaFile):
-        with open(zipShaFile) as f:
+    if os.path.exists(tarShaFile):
+        with open(tarShaFile) as f:
             localSha = f.read()
             f.close()
         
@@ -610,55 +656,53 @@ def updateFat(dirName, zipCode, shaCode):
     if necessary:
         info('not\n')
         
-        downloadFile(remoteZipUrl, localZipFile)
+        downloadFile(remoteTarUrl, localTarFile)
         
-        zipTmpPath = os.path.join(tempPath, 'fat')
-        info('Extracting zip file  ... ')
-        if os.path.exists(zipTmpPath):
-            shutil.rmtree(zipTmpPath)
-        with zipfile.ZipFile(localZipFile, 'r') as zip:
-            zip.extractall(tempPath)
-            zip.close()
+        tarTmpPath = os.path.join(tempPath, 'fat')
+        info('Extracting compressed file  ... ')
+        if os.path.exists(tarTmpPath):
+            shutil.rmtree(tarTmpPath)
+        with tarfile.open(localTarFile, 'r:bz2') as tar:
+            tar.extractall(tempPath)
+            tar.close()
         info('done\n')
         
         info('Moving files ... \n')
-        for item in os.listdir(zipTmpPath):
-            itemPath = os.path.join(zipTmpPath, item)
+        for item in os.listdir(tarTmpPath):
+            itemPath = os.path.join(tarTmpPath, item)
             targetPath = os.path.join(basePath, item)
             
             # Remove old dirs and files
             if os.path.exists(targetPath):
                 if os.path.isdir(targetPath):
-                    info('Removing directory ' + item + '\n')
-                    shutil.rmtree(targetPath)
+                    removeFilesWithProgress(targetPath)
                 else:
                     os.remove(targetPath)
             
             # Moving with workaround for problem on Windows
             if os.path.isdir(itemPath):
-                info('Moving directory ' + item + '\n')
                 retries = 0
                 while True:
                     try:
                         retries += 1
                         moveFilesWithProgress(itemPath, targetPath)
                         break
-                    except WindowsError:
+                    except WindowsError as e:
                         if retries < 3:  # Trying 3 times
                             time.sleep(1)
                         else:
-                            throw        # Then throw
+                            raise e       # Then raise exception
             else:                
                 try:
                     shutil.move(itemPath, targetPath)
                     break
                 except IOError:
                     info('Warning! Can not move file ' + item + '\n')  # virus scanner?
-        shutil.rmtree(zipTmpPath)
+        shutil.rmtree(tarTmpPath)
         info('done\n')
         
         info('Copying sha file ... ')
-        shutil.copyfile(localShaFile, zipShaFile)
+        shutil.copyfile(localShaFile, tarShaFile)
         info('done\n')
     else:
         info('yes\n')
@@ -694,15 +738,15 @@ def checkWindowsProcessesBase(execs):
 
 def checkWindowsProcesses():
     execs = [['Notepad++', 'Windows\\Utils\\Notepad++\\notepad++.exe'],
-            ['WinSCPPortable', 'Windows\\Utils\\WinSCPPortable\\WinSCPPortable++.exe'],
-            ['Putty', 'Windows\\Utils\\Xming\\PAGEANT.EXE'],
-            ['Putty', 'Windows\\Utils\\Xming\\plink.exe'],
-            ['Putty', 'Windows\\Utils\\Xming\\PSCP.EXE'],
-            ['Putty', 'Windows\\Utils\\Xming\\PSFTP.EXE'],
-            ['Putty', 'Windows\\Utils\\Xming\\putty.exe'],
-            ['Putty', 'Windows\\Utils\\Xming\\PUTTYGEN.EXE'],
-            ['Xming', 'Windows\\Utils\\Xming\\xkbcomp.exe'],
-            ['Xming', 'Windows\\Utils\\Xming\\Xming.exe']]
+             ['WinSCPPortable', 'Windows\\Utils\\WinSCPPortable\\WinSCPPortable++.exe'],
+             ['Putty', 'Windows\\Utils\\Xming\\PAGEANT.EXE'],
+             ['Putty', 'Windows\\Utils\\Xming\\plink.exe'],
+             ['Putty', 'Windows\\Utils\\Xming\\PSCP.EXE'],
+             ['Putty', 'Windows\\Utils\\Xming\\PSFTP.EXE'],
+             ['Putty', 'Windows\\Utils\\Xming\\putty.exe'],
+             ['Putty', 'Windows\\Utils\\Xming\\PUTTYGEN.EXE'],
+             ['Xming', 'Windows\\Utils\\Xming\\xkbcomp.exe'],
+             ['Xming', 'Windows\\Utils\\Xming\\Xming.exe']]
     
     while checkWindowsProcessesBase(execs) is False:
         while True:
@@ -725,11 +769,11 @@ def main():
     
     createTempPath()
     
-    updateFat('Windows', '54ae29d8d0420dfd78d7a2466fa09a40', '1657018afa545b87e2b5d51863d60b34')
-    updateFat('Linux', '3426231688a24d36d9d18e94f8a8c9ff', 'ed0ee4b645a706048bab687129bf3967')
-    updateFat('Mac', '2eea41e315b930a1dd5a700221b6f280', '14bd0a2f48dc4f7f72755956bdf5a6cc')
-    updateFat('Doc', '7aaf5ae4aa1194a1d7e5c481824bdae3', 'e22919092f76ba8a87fce4ed885376df')
-    updateFat('Other', '5d484f1887937e22ceada1bb916e863d', '0f44627c04c56a7e55e590268a21329b')
+    updateFat('Windows', 'e15f7e62ff63fdade6538381669e4e78', '1657018afa545b87e2b5d51863d60b34')
+    updateFat('Linux', 'd70f61b60df2bcda149105b74b47687d', 'ed0ee4b645a706048bab687129bf3967')
+    updateFat('Mac', '16d9028d3fac53777fddca1e526c8437', '14bd0a2f48dc4f7f72755956bdf5a6cc')
+    updateFat('Doc', 'b7c09c5654587aa32160aee60d2d2c5f', 'e22919092f76ba8a87fce4ed885376df')
+    updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1', '0f44627c04c56a7e55e590268a21329b')
     
     testSshConnection()
         
