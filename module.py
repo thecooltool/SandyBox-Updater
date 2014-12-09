@@ -25,7 +25,7 @@ import errno
 
 # Global variables
 tempPath = ''
-scriptVersion = 2
+scriptVersion = 3
 basePath = '../../'
 basePath = os.path.abspath(basePath)
 rsaKey = os.path.expanduser('~/.ssh/sandy-box_rsa')
@@ -462,7 +462,7 @@ def aptOfflineInstallPackages(names):
     if not necessary:
         return 
     
-    aptOfflineBase('--install-packages ' + names)
+    aptOfflineBase('--install-packages ' + names + ' --update')
     info('installing packages ... ')
     output = runSshCommand('sudo apt-get install -y ' + names + ' || echo installerror')
     if 'installerror' in output:
