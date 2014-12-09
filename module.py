@@ -28,7 +28,7 @@ tempPath = ''
 scriptVersion = 2
 basePath = '../../'
 basePath = os.path.abspath(basePath)
-rsaKey = os.path.join(basePath, 'System/ssh/id_rsa')
+rsaKey = os.path.expanduser('~/.ssh/sandy-box_rsa')
 aptOfflineExec = sys.executable + ' ' + os.path.join(basePath, 'System/update/apt-offline/apt-offline')
 gitHubUrl = 'https://raw.githubusercontent.com/thecooltool/Sandy-Box-Updater/master/'
 sshExec = ''
@@ -44,8 +44,8 @@ def init():
         sshExec = os.path.join(basePath, 'Windows\Utils\Xming\plink.exe') + ' -pw machinekit -ssh -2 -X machinekit@192.168.7.2'
         scpExec = os.path.join(basePath, 'Windows\Utils\Xming\pscp.exe') + ' -pw machinekit'
     else:
-        sshExec = 'ssh -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null machinekit@192.168.7.2' 
-        scpExec = 'scp -i ' + rsaKey + ' -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' 
+        sshExec = 'ssh -i ' + rsaKey + ' -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null machinekit@192.168.7.2' 
+        scpExec = 'scp -i ' + rsaKey + ' -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' 
 
 
 def info(message):
@@ -281,6 +281,7 @@ def testSshConnection():
     if 'testssh' in output:
         info('ok\n')
     else:
+        info('failed\n')
         info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
         info('Please check if your Sandy-Box is connected to the computer.\n')
         info('Make sure all drivers are installed and networking is working correctly.\n')
@@ -392,7 +393,7 @@ def aptOfflineBase(command):
     localBundle = os.path.join(tempPath, bundleName)
     hostBundle = '/tmp/' + bundleName
     
-    info('updating repositories ...')
+    info('Updating repositories ...')
     output = runSshCommand('sudo apt-offline set ' + command + ' ' + hostSig + ' || echo updateerror')
     if 'updateerror' in output:
         exitScript(' failed')
@@ -405,9 +406,9 @@ def aptOfflineBase(command):
     if os.path.isfile(localBundle):
         os.remove(localBundle)
         
-    command = aptOfflineExec + ' get --threads 4 --bundle ' + localBundle + ' ' + localSig
+    command = aptOfflineExec + ' get --threads 2 --bundle ' + localBundle + ' ' + localSig
     command = command.split(' ')
-    info('local update ...')
+    info('Downloading updates ...')
     p = subprocess.Popen(command)
     while(True):
         retcode = p.poll()  # returns None while subprocess is running
@@ -422,18 +423,29 @@ def aptOfflineBase(command):
     if copyToHost(localBundle, hostBundle) != 0:
         exitScript('copy failed')
         
-    info('installing repository update ... ')
+    info('Installing repository update ... ')
     output = runSshCommand('sudo apt-offline install ' + hostBundle + ' || echo installerror')
     if 'installerror' in output:
+        print(output)
         exitScript(' failed')
     else:
         info(' done\n')
 
 
 def aptOfflineUpdate():
-    aptOfflineBase('--update --upgrade')
-    info('upgrading packages ... ')
-    output = runSshCommand('sudo apt-get upgrade -y || echo installerror')
+    aptOfflineBase('--update')
+        
+def aptOfflineUpgrade():
+    info('Checking if upgrades are available ... ')
+    output = runSshCommand('sudo apt-get upgrade -u -y')
+    if '0 upgraded, 0 newly installed, 0 to remove' in output:
+        info('no\n')
+        return
+    else:
+        info('yes\n')
+    aptOfflineBase('--upgrade')
+    info('Upgrading packages ... ')
+    output = runSshCommand('sudo apt-get upgrade -y -q || echo installerror')
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
@@ -450,7 +462,7 @@ def aptOfflineInstallPackages(names):
     if not necessary:
         return 
     
-    aptOfflineBase('--install-packages ' + names + ' --update')
+    aptOfflineBase('--install-packages ' + names)
     info('installing packages ... ')
     output = runSshCommand('sudo apt-get install -y ' + names + ' || echo installerror')
     if 'installerror' in output:
@@ -659,11 +671,13 @@ def updateFat(dirName, fileCode, shaCode):
         downloadFile(remoteTarUrl, localTarFile)
         
         tarTmpPath = os.path.join(tempPath, 'fat')
+        
         info('Extracting compressed file  ... ')
         if os.path.exists(tarTmpPath):
             shutil.rmtree(tarTmpPath)
+        os.makedirs(tarTmpPath)
         with tarfile.open(localTarFile, 'r:bz2') as tar:
-            tar.extractall(tempPath)
+            tar.extractall(tarTmpPath)
             tar.close()
         info('done\n')
         
@@ -692,7 +706,7 @@ def updateFat(dirName, fileCode, shaCode):
                             time.sleep(1)
                         else:
                             raise e       # Then raise exception
-            else:                
+            else:
                 try:
                     shutil.move(itemPath, targetPath)
                     break
@@ -782,6 +796,7 @@ def main():
     
     installPackage('apt-offline_1.2_all.deb', 'apt-offline')
     aptOfflineUpdate()
+    aptOfflineUpgrade()
     aptOfflineInstallPackages('machinekit-dev zip unzip')
     
     updateHostGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
