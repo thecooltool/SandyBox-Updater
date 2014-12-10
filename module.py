@@ -221,9 +221,8 @@ def updateScript():
     localSha = None
     remoteSha = getGitRepoSha(gitHubUser, gitHubRepo)
     
-    shaFile = os.path.join(localFile, 'git.sha')
-    if os.path.exists(shaFile):
-        with open(shaFile) as f:
+    if os.path.exists(localFile):
+        with open(localFile) as f:
             localSha = f.read()
             f.close()
 
