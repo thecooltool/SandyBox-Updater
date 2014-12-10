@@ -30,7 +30,7 @@ scriptVersion = 4
 basePath = '../../'
 basePath = os.path.abspath(basePath)
 rsaKey = os.path.expanduser('~/.ssh/sandy-box_rsa')
-aptOfflineExec = sys.executable + ' ' + os.path.join(basePath, 'System/update/apt-offline/apt-offline')
+aptOfflinePath = os.path.join(basePath, 'System/update/apt-offline/')
 gitHubUser = 'thecooltool'
 gitHubRepo = 'Sandy-Box-Updater'
 gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo + '/master/'
@@ -65,16 +65,19 @@ def createTempPath():
 
 def clearTempPath():
     """ Removes a temporary path """
-    shutil.rmtree(tempPath)
+    global tempPath
     
+    if tempPath == '':
+        return
+    
+    shutil.rmtree(tempPath)
+    tempPath = ''
+
 
 def exitScript(message=None):
     if message is not None:
         sys.stderr.write(message)
         sys.stderr.write('\n')
-    
-    if tempPath is not '':
-        clearTempPath()
     
     sys.exit(1)
 
@@ -425,10 +428,10 @@ def aptOfflineBase(command):
     if os.path.isfile(localBundle):
         os.remove(localBundle)
         
-    command = aptOfflineExec + ' get --threads 2 --bundle ' + localBundle + ' ' + localSig
+    command = sys.executable + ' apt-offline get --threads 2 --bundle ' + localBundle + ' ' + localSig
     command = command.split(' ')
     info('Downloading updates ...')
-    p = subprocess.Popen(command)
+    p = subprocess.Popen(command, cwd=aptOfflinePath)
     while(True):
         retcode = p.poll()  # returns None while subprocess is running
         if(retcode is not None):
