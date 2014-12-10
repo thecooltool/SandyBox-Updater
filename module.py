@@ -22,15 +22,18 @@ import platform
 import time
 import threading
 import errno
+import traceback
 
 # Global variables
 tempPath = ''
-scriptVersion = 3
+scriptVersion = 4
 basePath = '../../'
 basePath = os.path.abspath(basePath)
 rsaKey = os.path.expanduser('~/.ssh/sandy-box_rsa')
 aptOfflineExec = sys.executable + ' ' + os.path.join(basePath, 'System/update/apt-offline/apt-offline')
-gitHubUrl = 'https://raw.githubusercontent.com/thecooltool/Sandy-Box-Updater/master/'
+gitHubUser = 'thecooltool'
+gitHubRepo = 'Sandy-Box-Updater'
+gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo + '/master/'
 sshExec = ''
 scpExec = ''
 
@@ -208,27 +211,32 @@ def downloadFile(url, filePath):
 def updateScript():
     createTempPath()
     
-    remoteFile = gitHubUrl + 'version.txt'
-    localFile = os.path.join(tempPath, 'version.txt')
+    localFile = os.path.join(basePath, 'System/update/sha/update.sha')
     currentScript = os.path.realpath(__file__)
     scriptName = 'module.py'
     remoteScript = gitHubUrl + scriptName
     localScript = os.path.join(tempPath, scriptName)
-
+    
     info('Checking if updater is up to date ... \n')
-    downloadFile(remoteFile, localFile)
-
-    remoteVersion = 0
-    with open(localFile, 'r') as f:
-        remoteVersion = int(f.readline())
+    localSha = None
+    remoteSha = getGitRepoSha(gitHubUser, gitHubRepo)
+    
+    shaFile = os.path.join(localFile, 'git.sha')
+    if os.path.exists(shaFile):
+        with open(shaFile) as f:
+            localSha = f.read()
+            f.close()
 
     updated = False
-    if remoteVersion > scriptVersion:
+    if remoteSha != localSha:
         info('not\n')
         info('Updating update script ... \n')
         downloadFile(remoteScript, localScript)
         shutil.copyfile(localScript, currentScript)
-        update = True
+        with open(localFile, 'w') as f:
+            f.write(remoteSha)
+            f.close()
+        updated = True
         info('done\n')
     else:
         info('yes\n')
@@ -245,7 +253,7 @@ def processTimeout(p):
         except OSError as e:
             if e.errno != errno.ESRCH:
                 raise
-    
+
 
 def runSshCommand(command, timeout=0.0):
     lines = ''
@@ -253,7 +261,11 @@ def runSshCommand(command, timeout=0.0):
     fullCommand = sshExec.split(' ')
     fullCommand.append(command)
 
-    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(fullCommand, 
+                         stdout=subprocess.PIPE,
+                         stdin=subprocess.PIPE, 
+                         stderr=subprocess.STDOUT)
+
     if timeout != 0.0:
         timer = threading.Timer(timeout, processTimeout, [p])
         timer.start()
@@ -263,7 +275,10 @@ def runSshCommand(command, timeout=0.0):
 
         line = p.stdout.readline()
         if 'If you trust this host, enter "y" to add the key to' in line:
-                p.stdin.write('y\n')    # accept
+            p.stdin.write(b'y\n')    # accept
+        if 'The server\'s host key does not match the one PuTTY' in line:
+            p.stdin.write(b'y\n')    # accept
+
         lines += line
 
         if(retcode is not None):
@@ -282,6 +297,7 @@ def testSshConnection():
         info('ok\n')
     else:
         info('failed\n')
+        print(output)
         info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
         info('Please check if your Sandy-Box is connected to the computer.\n')
         info('Make sure all drivers are installed and networking is working correctly.\n')
@@ -300,7 +316,9 @@ def copyToHost(localFile, remoteFile):
         retcode = p.poll()  # returns None while subprocess is running
         line = p.stdout.readline()
         if 'If you trust this host, enter "y" to add the key to' in line:
-            p.stdin.write('y\n')    # accept
+            p.stdin.write(b'y\n')    # accept
+        if 'The server\'s host key does not match the one PuTTY' in line:
+            p.stdin.write(b'y\n')    # accept
         if(retcode is not None):
             break
     
@@ -313,17 +331,19 @@ def copyFromHost(remoteFile, localFile):
     fullCommand = scpExec.split(' ')
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
     fullCommand.append(localFile)
-    
+
     info("Copying " + os.path.basename(localFile) + " from remote host ...")
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin = subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
         retcode = p.poll()  # returns None while subprocess is running
         line = p.stdout.readline()
         if 'If you trust this host, enter "y" to add the key to' in line:
-            p.stdin.write('y\n')  # accept
+            p.stdin.write(b'y\n')  # accept
+        if 'The server\'s host key does not match the one PuTTY' in line:
+            p.stdin.write(b'y\n')    # accept
         if(retcode is not None):
             break
-    
+
     info(" done\n")
     return retcode
 
@@ -501,7 +521,7 @@ def compareHostGitRepo(user, repo, path):
         done = False
         
     if not done:    # remote is not git repo, try to read sha file
-        shaFile = path + '/git-sha'  # os path join would fail on Windows
+        shaFile = path + '/git.sha'  # os path join would fail on Windows
         output = runSshCommand('cat ' + shaFile + ' || echo parseerror')
         if 'parseerror' in output:
             return False
@@ -513,10 +533,10 @@ def compareHostGitRepo(user, repo, path):
 def compareLocalGitRepo(user, repo, path):
     remoteSha = getGitRepoSha(user, repo)
     
-    shaFile = os.path.join(path, 'git-sha')
+    shaFile = os.path.join(path, 'git.sha')
     if os.path.exists(shaFile):
         with open(shaFile) as f:
-            localSha = f.read().split('\n')[-1] # last line in sha file
+            localSha = f.read().split('\n')[-1]  # last line in sha file
             f.close()
             
         return remoteSha == localSha
@@ -533,7 +553,7 @@ def updateHostGitRepo(user, repo, path, commands):
     fileName = repo + '.zip'
     localFile = os.path.join(tempPath, fileName)
     hostFile = '/tmp/' + fileName
-    shaFile = path + '/git-sha'
+    shaFile = path + '/git.sha'
     tmpPath = path + '-tmp'
     
     info('Checking if git repo ' + repo + ' is up to date ... ')
@@ -587,7 +607,7 @@ def updateLocalGitRepo(user, repo, path):
     necessary = False
     fileName = repo + '.zip'
     localFile = os.path.join(tempPath, fileName)
-    shaFile = os.path.join(path, 'git-sha')
+    shaFile = os.path.join(path, 'git.sha')
     tmpPath = os.path.join(tempPath, repo)
     
     
@@ -783,32 +803,38 @@ def main():
     
     createTempPath()
     
-    updateFat('Windows', 'e15f7e62ff63fdade6538381669e4e78', '1657018afa545b87e2b5d51863d60b34')
-    updateFat('Linux', 'd70f61b60df2bcda149105b74b47687d', 'ed0ee4b645a706048bab687129bf3967')
-    updateFat('Mac', '16d9028d3fac53777fddca1e526c8437', '14bd0a2f48dc4f7f72755956bdf5a6cc')
-    updateFat('Doc', 'b7c09c5654587aa32160aee60d2d2c5f', 'e22919092f76ba8a87fce4ed885376df')
-    updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1', '0f44627c04c56a7e55e590268a21329b')
-    
-    testSshConnection()
+    try:
+        updateFat('Windows', 'e15f7e62ff63fdade6538381669e4e78', '1657018afa545b87e2b5d51863d60b34')
+        updateFat('Linux', 'd70f61b60df2bcda149105b74b47687d', 'ed0ee4b645a706048bab687129bf3967')
+        updateFat('Mac', '16d9028d3fac53777fddca1e526c8437', '14bd0a2f48dc4f7f72755956bdf5a6cc')
+        updateFat('Doc', 'b7c09c5654587aa32160aee60d2d2c5f', 'e22919092f76ba8a87fce4ed885376df')
+        updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1', '0f44627c04c56a7e55e590268a21329b')
         
-    if not makeHostPath('~/nc_files/share'):
-        exitScript('failed to create directory')
-    
-    installPackage('apt-offline_1.2_all.deb', 'apt-offline')
-    aptOfflineUpdate()
-    aptOfflineUpgrade()
-    aptOfflineInstallPackages('machinekit-dev zip unzip')
-    
-    updateHostGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
-    updateHostGitRepo('strahlex', 'Cetus', '~/Cetus', [''])
-    updateHostGitRepo('strahlex', 'Machineface', '~/Machineface', [''])
-    #updateHostGitRepo('strahlex', 'mjpeg-streamer', '~/bin/mjpeg-streamer', [])
-    updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
-    updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
-    updateLocalGitRepo('thecooltool', 'example-gcode', os.path.join(basePath, 'nc_files/examples'))
-    
-    clearTempPath()
-    
-    info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
-    info('Update successfully finished!\n')
-    info('You can now close the terminal window\n')
+        testSshConnection()
+            
+        if not makeHostPath('~/nc_files/share'):
+            exitScript('failed to create directory')
+        
+        installPackage('apt-offline_1.2_all.deb', 'apt-offline')
+        aptOfflineUpdate()
+        aptOfflineUpgrade()
+        aptOfflineInstallPackages('machinekit-dev zip unzip')
+        
+        updateHostGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
+        updateHostGitRepo('strahlex', 'Cetus', '~/Cetus', [''])
+        updateHostGitRepo('strahlex', 'Machineface', '~/Machineface', [''])
+        #updateHostGitRepo('strahlex', 'mjpeg-streamer', '~/bin/mjpeg-streamer', [])
+        updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
+        updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+        updateLocalGitRepo('thecooltool', 'example-gcode', os.path.join(basePath, 'nc_files/examples'))
+    except:
+        print(traceback.format_exc())
+        info("Error during execution of update script.")
+        sys.exit(1)
+    else:
+        info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
+        info('Update successfully finished!\n')
+        info('You can now close the terminal window\n')
+    finally:
+        clearTempPath()
+
