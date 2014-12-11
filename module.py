@@ -215,8 +215,9 @@ def updateScript():
     createTempPath()
     
     localFile = os.path.join(basePath, 'System/update/sha/update.sha')
-    currentScript = os.path.realpath(__file__)
-    scriptName = 'module.py'
+    scriptPath = os.path.abspath(__file__)
+    currentScript = os.path.splitext(scriptPath)[0] + '.py'  # fixes problem on Win64
+    scriptName = os.path.basename(currentScript)
     remoteScript = gitHubUrl + scriptName
     localScript = os.path.join(tempPath, scriptName)
     
