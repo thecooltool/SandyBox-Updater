@@ -26,7 +26,6 @@ import traceback
 
 # Global variables
 tempPath = ''
-scriptVersion = 4
 basePath = '../../'
 basePath = os.path.abspath(basePath)
 rsaKey = os.path.expanduser('~/.ssh/sandy-box_rsa')
