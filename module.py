@@ -765,9 +765,14 @@ def checkWindowsProcessesBase(execs):
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     for line in proc.stdout:
         for entry in execs:
-            execPath = os.path.join(basePath, entry[1])
-            if execPath in line:
-                info('Please close ' + entry[0] + ' before updating\n')
+            path = entry[1]
+            application = entry[0]
+            if '\\' in path:
+                searchString = os.path.join(basePath, path)
+            else:
+                searchString = path
+            if searchString in line:
+                info('Please close ' + application + ' before updating\n')
                 return False
     return True
 
@@ -781,8 +786,8 @@ def checkWindowsProcesses():
              ['Putty', 'Windows\\Utils\\Xming\\PSFTP.EXE'],
              ['Putty', 'Windows\\Utils\\Xming\\putty.exe'],
              ['Putty', 'Windows\\Utils\\Xming\\PUTTYGEN.EXE'],
-             ['Xming', 'Windows\\Utils\\Xming\\xkbcomp.exe'],
-             ['Xming', 'Windows\\Utils\\Xming\\Xming.exe']]
+             ['Xming', 'xkbcomp.exe'],
+             ['Xming', 'Xming.exe']]
     
     while checkWindowsProcessesBase(execs) is False:
         while True:
