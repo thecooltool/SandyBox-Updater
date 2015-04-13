@@ -831,6 +831,7 @@ def main():
         aptOfflineInstallPackages('machinekit-dev zip unzip')
 
         updateHostGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
+        updateHostGitRepo('cdsteinkuehler', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
         updateHostGitRepo('strahlex', 'Cetus', '~/Cetus', [''])
         updateHostGitRepo('strahlex', 'Machineface', '~/Machineface', [''])
         #updateHostGitRepo('strahlex', 'mjpeg-streamer', '~/bin/mjpeg-streamer', [])
