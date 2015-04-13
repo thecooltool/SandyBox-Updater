@@ -260,6 +260,7 @@ def processTimeout(p):
 
 def runSshCommand(command, timeout=0.0):
     lines = ''
+    retcode = 0
     timer = None
     fullCommand = sshExec.split(' ')
     fullCommand.append(command)
@@ -290,12 +291,12 @@ def runSshCommand(command, timeout=0.0):
     if timer is not None:
         timer.cancel()
 
-    return lines
+    return lines, retcode
 
 
 def testSshConnection():
     info('Testing ssh connection ... ')
-    output = runSshCommand('echo testssh', 10.0)
+    output, retcode = runSshCommand('echo testssh', 10.0)
     if 'testssh' in output:
         info('ok\n')
     else:
@@ -351,28 +352,28 @@ def copyFromHost(remoteFile, localFile):
 
 
 def checkHostPath(remotePath):
-    output = runSshCommand('ls ' + remotePath + ' || echo doesnotexist')
+    output, retcode = runSshCommand('ls ' + remotePath + ' || echo doesnotexist')
     return not ('doesnotexist' in output)
 
 
 def removeHostPath(remotePath):
-    output = runSshCommand('rm -r -f ' + remotePath + ' || echo removefailed')
+    output, retcode = runSshCommand('rm -r -f ' + remotePath + ' || echo removefailed')
     return not ('removefailed' in output)
 
 
 def moveHostPath(src, dst):
-    output = runSshCommand('mv ' + src + ' ' + dst + ' || echo removefailed')
+    output, retcode = runSshCommand('mv ' + src + ' ' + dst + ' || echo removefailed')
     return not ('removefailed' in output)
 
 
 def makeHostPath(remotePath):
-    output = runSshCommand('mkdir -p ' + remotePath + ' || echo mkdirfailed')
+    output, retcode = runSshCommand('mkdir -p ' + remotePath + ' || echo mkdirfailed')
     return not ('mkdirfailed' in output)
 
 
 def unzipOnHost(zipFile, remotePath):
     info('unzipping ' + os.path.basename(remotePath) + ' ... ')
-    output = runSshCommand('unzip ' + zipFile + ' -d ' + remotePath + ' || echo unzipfailed')
+    output, retcode = runSshCommand('unzip ' + zipFile + ' -d ' + remotePath + ' || echo unzipfailed')
     if 'unzipfailed' in output:
         info(' failed\n')
         return False
@@ -383,7 +384,7 @@ def unzipOnHost(zipFile, remotePath):
 
 def checkPackage(name):
     info('Checking for package ' + name + ' ... ')
-    output = runSshCommand('source /etc/profile; dpkg-query -l ' + name + ' || echo not_installed')
+    output, retcode = runSshCommand('source /etc/profile; dpkg-query -l ' + name + ' || echo not_installed')
     if 'not_installed' in output:
         info('not installed\n')
         return False
@@ -401,7 +402,7 @@ def installPackage(package, name):
         downloadFile(remotePackage, localPackage)
         copyToHost(localPackage, hostPackage)
         info('Intalling package ' + package + ' ... ')
-        output = runSshCommand('source /etc/profile; sudo dpkg -i ' + hostPackage + ' || echo installerror')
+        output, retcode = runSshCommand('source /etc/profile; sudo dpkg -i ' + hostPackage + ' || echo installerror')
         if 'installerror' in output:
             exitScript('installing package ' + package + ' failed')
         info('done\n')
@@ -416,7 +417,7 @@ def aptOfflineBase(command):
     hostBundle = '/tmp/' + bundleName
 
     info('Updating repositories ...')
-    output = runSshCommand('sudo apt-offline set ' + command + ' ' + hostSig + ' || echo updateerror')
+    output, retcode = runSshCommand('sudo apt-offline set ' + command + ' ' + hostSig + ' || echo updateerror')
     if 'updateerror' in output:
         exitScript(' failed')
     else:
@@ -446,7 +447,7 @@ def aptOfflineBase(command):
         exitScript('copy failed')
 
     info('Installing repository update ... ')
-    output = runSshCommand('sudo apt-offline install ' + hostBundle + ' || echo installerror')
+    output, retcode = runSshCommand('sudo apt-offline install ' + hostBundle + ' || echo installerror')
     if 'installerror' in output:
         print(output)
         exitScript(' failed')
@@ -460,7 +461,7 @@ def aptOfflineUpdate():
 
 def aptOfflineUpgrade():
     info('Checking if upgrades are available ... ')
-    output = runSshCommand('sudo apt-get upgrade -u -y')
+    output, retcode = runSshCommand('sudo apt-get upgrade -u -y')
     if '0 upgraded, 0 newly installed, 0 to remove' in output:
         info('no\n')
         return
@@ -468,7 +469,7 @@ def aptOfflineUpgrade():
         info('yes\n')
     aptOfflineBase('--upgrade')
     info('Upgrading packages ... ')
-    output = runSshCommand('sudo apt-get upgrade -y -q || echo installerror')
+    output, retcode = runSshCommand('sudo apt-get upgrade -y -q || echo installerror')
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
@@ -488,7 +489,7 @@ def aptOfflineInstallPackages(names):
 
     aptOfflineBase('--install-packages ' + names + ' --update')
     info('installing packages ... ')
-    output = runSshCommand('sudo apt-get install -y ' + names + ' || echo installerror')
+    output, retcode = runSshCommand('sudo apt-get install -y ' + names + ' || echo installerror')
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
@@ -520,13 +521,13 @@ def compareHostGitRepo(user, repo, path):
     remoteSha = getGitRepoSha(user, repo)
 
     done = True
-    output = runSshCommand('cd ' + path + ';git rev-parse HEAD || echo parseerror')
+    output, retcode = runSshCommand('cd ' + path + ';git rev-parse HEAD || echo parseerror')
     if 'parseerror' in output:
         done = False
 
     if not done:    # remote is not git repo, try to read sha file
         shaFile = path + '/git.sha'  # os path join would fail on Windows
-        output = runSshCommand('cat ' + shaFile + ' || echo parseerror')
+        output, retcode = runSshCommand('cat ' + shaFile + ' || echo parseerror')
         if 'parseerror' in output:
             return False
 
@@ -592,7 +593,7 @@ def updateHostGitRepo(user, repo, path, commands):
         if not removeHostPath(tmpPath):
             exitScript('remove failed')
 
-        output = runSshCommand('unzip -z ' + hostFile + ' >> ' + shaFile + ' || echo commanderror')
+        output, retcode = runSshCommand('unzip -z ' + hostFile + ' >> ' + shaFile + ' || echo commanderror')
         if 'commanderror' in output:
             exitScript('sha dump failed')
 
@@ -600,7 +601,7 @@ def updateHostGitRepo(user, repo, path, commands):
             if command == '':
                 continue
             info('executing ' + command + ' ... ')
-            output = runSshCommand('source /etc/profile; cd ' + path + '; ' + command + ' || echo commanderror')
+            output, retcode = runSshCommand('source /etc/profile; cd ' + path + '; ' + command + ' || echo commanderror')
             if 'commanderror' in output:
                 exitScript(' failed')
             else:
