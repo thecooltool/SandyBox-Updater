@@ -808,8 +808,10 @@ def checkWindowsProcesses():
 
 def fixPowerButton():
     fileName = 'powerbtn-acpi-support.sh'
+    info('Checking if power button script is installed...')
     output, retcode = runSshCommand('grep "# Normal handling." /etc/acpi/' + fileName)
     if retcode == 0:
+        info('not\n')
         localPath = os.path.join(tempPath, fileName)
         remotePath = os.path.join('/tmp', fileName)
         fileUrl = gitHubUrl + '/files/' + fileName
@@ -819,6 +821,8 @@ def fixPowerButton():
         output, retcode = runSshCommand('chmod +x ' + remotePath + '; sudo mv ' + remotePath + ' /etc/acpi/' + fileName)
         if retcode != 0:
             exitScript('Command failed: ' + output)
+    else:
+        info('yes\n')
 
 
 def main():
