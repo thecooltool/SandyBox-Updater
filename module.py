@@ -806,6 +806,21 @@ def checkWindowsProcesses():
                 info('wrong input, please try again\n')
 
 
+def fixPowerButton():
+    fileName = 'powerbtn-acpi-support.sh'
+    output, retcode = runSshCommand('grep "# Normal handling." /etc/acpi/' + fileName)
+    if retcode == 0:
+        localPath = os.path.join(tempPath, fileName)
+        remotePath = os.path.join('/tmp', fileName)
+        fileUrl = gitHubUrl + '/files/' + fileName
+        info('Updating power button script.\n')
+        downloadFile(fileUrl, localPath)
+        copyToHost(localPath, remotePath)
+        output, retcode = runSshCommand('chmod +x ' + remotePath + '; sudo mv ' + remotePath + ' /etc/acpi/' + fileName)
+        if retcode != 0:
+            exitScript('Command failed: ' + output)
+
+
 def main():
     init()
 
@@ -825,6 +840,8 @@ def main():
 
         if not makeHostPath('~/nc_files/share'):
             exitScript('failed to create directory')
+
+        fixPowerButton()
 
         installPackage('apt-offline_1.2_all.deb', 'apt-offline')
         aptOfflineUpdate()
