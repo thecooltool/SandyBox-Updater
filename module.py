@@ -430,7 +430,7 @@ def aptOfflineBase(command):
         os.remove(localBundle)
 
     command = sys.executable + ' apt-offline get --threads 2 --bundle ' + localBundle + ' ' + localSig
-    command = shlex.split(command)
+    command = command.split(' ')
     info('Downloading updates ...')
     p = subprocess.Popen(command, cwd=aptOfflinePath)
     while(True):
