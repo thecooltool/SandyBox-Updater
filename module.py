@@ -23,6 +23,8 @@ import time
 import threading
 import errno
 import traceback
+import posixpath
+import shlex
 
 # Global variables
 tempPath = ''
@@ -262,7 +264,7 @@ def runSshCommand(command, timeout=0.0):
     lines = ''
     retcode = 0
     timer = None
-    fullCommand = sshExec.split(' ')
+    fullCommand = shlex.split(sshExec)
     fullCommand.append(command)
 
     p = subprocess.Popen(fullCommand,
@@ -309,8 +311,7 @@ def testSshConnection():
 
 
 def copyToHost(localFile, remoteFile):
-    lines = ''
-    fullCommand = scpExec.split(' ')
+    fullCommand = shlex.split(scpExec)
     fullCommand.append(localFile)
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
 
@@ -331,7 +332,7 @@ def copyToHost(localFile, remoteFile):
 
 
 def copyFromHost(remoteFile, localFile):
-    fullCommand = scpExec.split(' ')
+    fullCommand = shlex.split(scpExec)
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
     fullCommand.append(localFile)
 
@@ -396,7 +397,7 @@ def checkPackage(name):
 def installPackage(package, name):
     remotePackage = gitHubUrl + 'packages/' + package
     localPackage = os.path.join(tempPath, package)
-    hostPackage = '/tmp/' + package
+    hostPackage = posixpath.join('/tmp', package)
 
     if not checkPackage(name):
         downloadFile(remotePackage, localPackage)
@@ -411,10 +412,10 @@ def installPackage(package, name):
 def aptOfflineBase(command):
     sigName = 'apt-offline.sig'
     localSig = os.path.join(tempPath, sigName)
-    hostSig = '/tmp/' + sigName
+    hostSig = posixpath.join('/tmp', sigName)
     bundleName = 'bundle.zip'
     localBundle = os.path.join(tempPath, bundleName)
-    hostBundle = '/tmp/' + bundleName
+    hostBundle = posixpath.join('/tmp', bundleName)
 
     info('Updating repositories ...')
     output, retcode = runSshCommand('sudo apt-offline set ' + command + ' ' + hostSig + ' || echo updateerror')
@@ -430,7 +431,7 @@ def aptOfflineBase(command):
         os.remove(localBundle)
 
     command = sys.executable + ' apt-offline get --threads 2 --bundle ' + localBundle + ' ' + localSig
-    command = command.split(' ')
+    command = shlex.split(command)
     info('Downloading updates ...')
     p = subprocess.Popen(command, cwd=aptOfflinePath)
     while(True):
@@ -559,8 +560,8 @@ def updateHostGitRepo(user, repo, path, commands):
     necessary = False
     fileName = repo + '.zip'
     localFile = os.path.join(tempPath, fileName)
-    hostFile = '/tmp/' + fileName
-    shaFile = path + '/git.sha'
+    hostFile = posixpath.join('/tmp', fileName)
+    shaFile = posixpath.join(path, 'git.sha')
     tmpPath = path + '-tmp'
 
     info('Checking if git repo ' + repo + ' is up to date ... ')
@@ -813,7 +814,7 @@ def fixPowerButton():
     if retcode == 0:
         info('not\n')
         localPath = os.path.join(tempPath, fileName)
-        remotePath = os.path.join('/tmp/', fileName)
+        remotePath = posixpath.join('/tmp', fileName)
         fileUrl = gitHubUrl + '/files/' + fileName
         info('Updating power button script.\n')
         downloadFile(fileUrl, localPath)
