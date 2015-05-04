@@ -24,7 +24,6 @@ import threading
 import errno
 import traceback
 import posixpath
-import shlex
 
 # Global variables
 tempPath = ''
@@ -264,7 +263,7 @@ def runSshCommand(command, timeout=0.0):
     lines = ''
     retcode = 0
     timer = None
-    fullCommand = shlex.split(sshExec)
+    fullCommand = sshExec.split(' ')
     fullCommand.append(command)
 
     p = subprocess.Popen(fullCommand,
@@ -311,7 +310,7 @@ def testSshConnection():
 
 
 def copyToHost(localFile, remoteFile):
-    fullCommand = shlex.split(scpExec)
+    fullCommand = scpExec.split(' ')
     fullCommand.append(localFile)
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
 
@@ -332,7 +331,7 @@ def copyToHost(localFile, remoteFile):
 
 
 def copyFromHost(remoteFile, localFile):
-    fullCommand = shlex.split(scpExec)
+    fullCommand = scpExec.split(' ')
     fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
     fullCommand.append(localFile)
 
