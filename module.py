@@ -813,7 +813,7 @@ def fixPowerButton():
     if retcode == 0:
         info('not\n')
         localPath = os.path.join(tempPath, fileName)
-        remotePath = os.path.join('/tmp', fileName)
+        remotePath = os.path.join('/tmp/', fileName)
         fileUrl = gitHubUrl + '/files/' + fileName
         info('Updating power button script.\n')
         downloadFile(fileUrl, localPath)
