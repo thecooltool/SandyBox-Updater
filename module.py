@@ -831,7 +831,7 @@ def installMklauncher():
     info('Checking if mklauncher service is installed...')
     _, retcode = runSshCommand('test -f %s' % servicePath)
 
-    if retcode == 0:
+    if retcode == 1:
         info('not\n')
         localPath = os.path.join(tempPath, fileName)
         remotePath = posixpath.join('/tmp', fileName)
