@@ -825,6 +825,27 @@ def fixPowerButton():
         info('yes\n')
 
 
+def installMachinekitIni():
+    fileName = 'machinekit.ini'
+    filePath = '/etc/linuxcnc/%s' % fileName
+    info('Checking if machinekit.ini is up to date...')
+    _, retcode = runSshCommand('grep "THE_COOL_TOOL_VERSION = 1" %s' % filePath)
+
+    if retcode == 0:
+        info('not\n')
+        localPath = os.path.join(tempPath, fileName)
+        remotePath = posixpath.join('/tmp', fileName)
+        fileUrl = gitHubUrl + '/files/' + fileName
+        info('Updating machinekit.ini.\n')
+        downloadFile(fileUrl, localPath)
+        copyToHost(localPath, remotePath)
+        output, retcode = runSshCommand('sudo mv %s %s' % (remotePath, filePath))
+        if retcode != 0:
+            exitScript('Command failed: ' + output)
+    else:
+        info('yes\n')
+
+
 def installMklauncher():
     fileName = 'mklauncher.service'
     servicePath = '/etc/systemd/system/%s' % fileName
@@ -885,6 +906,7 @@ def main():
         updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
         updateLocalGitRepo('thecooltool', 'example-gcode', os.path.join(basePath, 'nc_files/examples'))
 
+        installMachinekitIni()
         installMklauncher()
     except:
         print(traceback.format_exc())
