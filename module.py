@@ -461,7 +461,7 @@ def aptOfflineUpdate():
 
 def aptOfflineUpgrade():
     info('Checking if upgrades are available ... ')
-    output, retcode = runSshCommand('sudo apt-get upgrade -u -y')
+    output, retcode = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -u -y')
     if '0 upgraded, 0 newly installed, 0 to remove' in output:
         info('no\n')
         return
@@ -469,7 +469,7 @@ def aptOfflineUpgrade():
         info('yes\n')
     aptOfflineBase('--upgrade')
     info('Upgrading packages ... ')
-    output, retcode = runSshCommand('sudo apt-get upgrade -y -q || echo installerror')
+    output, retcode = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -y -q || echo installerror')
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
