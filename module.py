@@ -833,7 +833,7 @@ def installMachinekitIni():
     info('Checking if machinekit.ini is up to date...')
     _, retcode = runSshCommand('grep "THE_COOL_TOOL_VERSION = 1" %s' % filePath)
 
-    if retcode == 0:
+    if retcode == 1:
         info('not\n')
         localPath = os.path.join(tempPath, fileName)
         remotePath = posixpath.join('/tmp', fileName)
