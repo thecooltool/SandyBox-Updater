@@ -1,0 +1,9 @@
+[Unit]
+Description=Starts Mklauncher
+After=syslog.target network.target
+[Service]
+Type=simple
+ExecStart=mklauncher /home/machinekit/
+User=machinekit
+[Install]
+WantedBy=multi-user.target

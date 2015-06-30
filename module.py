@@ -825,6 +825,30 @@ def fixPowerButton():
         info('yes\n')
 
 
+def installMklauncher():
+    fileName = 'mklauncher.service'
+    servicePath = '/etc/systemd/system/%s' % fileName
+    info('Checking if mklauncher service is installed...')
+    _, retcode = runSshCommand('test -f %s' % servicePath)
+
+    if retcode == 0:
+        info('not\n')
+        localPath = os.path.join(tempPath, fileName)
+        remotePath = posixpath.join('/tmp', fileName)
+        fileUrl = '%s/files/%s' % (gitHubUrl, fileName)
+        info('Installing mklauncher service.\n')
+        downloadFile(fileUrl, localPath)
+        copyToHost(localPath, remotePath)
+        command = 'sudo mv %s %s; ' % (remotePath, servicePath)
+        command += 'sudo systemctl daemon-reload; '
+        command += 'sudo systemctl enable mklauncher.service'
+        output, retcode = runSshCommand(command)
+        if retcode != 0:
+            exitScript('Command failed: ' + output)
+    else:
+        info('yes\n')
+
+
 def main():
     init()
 
@@ -860,6 +884,8 @@ def main():
         updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
         updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
         updateLocalGitRepo('thecooltool', 'example-gcode', os.path.join(basePath, 'nc_files/examples'))
+
+        installMklauncher()
     except:
         print(traceback.format_exc())
         info("Error during execution of update script.")
