@@ -3,7 +3,7 @@ Description=Starts Mklauncher
 After=syslog.target network.target
 [Service]
 Type=simple
-ExecStart=mklauncher /home/machinekit/
+ExecStart=/usr/bin/mklauncher /home/machinekit/
 User=machinekit
 [Install]
 WantedBy=multi-user.target
