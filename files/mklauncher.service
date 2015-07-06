@@ -5,5 +5,6 @@ After=syslog.target network.target
 Type=simple
 ExecStart=/usr/bin/mklauncher /home/machinekit/
 User=machinekit
+LimitMEMLOCK=33554432
 [Install]
 WantedBy=multi-user.target
