@@ -671,8 +671,8 @@ def updateFat(dirName, fileCode, shaCode):
     localShaFile = os.path.join(tempPath, dirName + '.sha')
     localTarFile = os.path.join(tempPath, dirName + '.tar.bz2')
     tarShaFile = os.path.join(basePath, 'System/update/sha/' + dirName + '.sha')
-    remoteTarUrl = 'https://wolke.effet.info/public.php?service=files&t=' + fileCode + '&download'
-    remoteShaUrl = 'https://wolke.effet.info/public.php?service=files&t=' + shaCode + '&download'
+    remoteTarUrl = 'https://wolke.effet.info/index.php/s/' + fileCode + '/download'
+    remoteShaUrl = 'https://wolke.effet.info/index.php/s/' + shaCode + '/download'
 
     # check local sha
     info('Checking if ' + dirName + ' on FAT partition is up to date ... \n')
