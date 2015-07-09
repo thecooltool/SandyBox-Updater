@@ -36,6 +36,7 @@ gitHubRepo = 'Sandy-Box-Updater'
 gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo + '/master/'
 sshExec = ''
 scpExec = ''
+softwareVersion = 2
 
 
 def init():
@@ -763,6 +764,37 @@ def proceedMessage():
             info('wrong input, please try again\n')
 
 
+def readSoftwareVersion():
+    info('Reading software version... ')
+    version = 0
+    output, _ = runSshCommand('cat /etc/software_version || echo doesnotexist')
+    if not ('doesnotexist' in output):
+        version = int(output.strip())
+
+    info(' %i\n' % version)
+    return version
+
+
+def updateSoftwareVersion(version):
+    info('Updating software verison to %i... ' % version)
+    output, _ = runSshCommand('sudo su -c "echo %s > /etc/software_version" || echo failed' % str(version))
+    if ('failed' in output):
+        exitScript('failed')
+    else:
+        info('done\n')
+
+
+def readDogtag():
+    info('Reading dogtag... ')
+    dogtag = 'Unknown'
+    output, _ = runSshCommand('cat /etc/dogtag || echo doesnotexist')
+    if not ('doesnotexist' in output):
+        dogtag = output.strip()
+
+    info('%s\n' % dogtag)
+    return dogtag
+
+
 def checkWindowsProcessesBase(execs):
     cmd = 'WMIC PROCESS get Commandline'
     info('Checking running applications...\n')
@@ -889,15 +921,24 @@ def main():
 
         testSshConnection()
 
-        if not makeHostPath('~/nc_files/share'):
-            exitScript('failed to create directory')
+        version = readSoftwareVersion()
 
-        fixPowerButton()
+        if version < 1:
+            installPackage('apt-offline_1.2_all.deb', 'apt-offline')
 
-        installPackage('apt-offline_1.2_all.deb', 'apt-offline')
         aptOfflineUpdate()
         aptOfflineUpgrade()
-        aptOfflineInstallPackages('machinekit-dev zip unzip')
+
+        if version < 2:
+            if not makeHostPath('~/nc_files/share'):
+                exitScript('failed to create nc_files/share directory')
+
+            fixPowerButton()
+
+            aptOfflineInstallPackages('machinekit-dev zip unzip')
+
+            installMachinekitIni()
+            installMklauncher()
 
         updateHostGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
         updateHostGitRepo('cdsteinkuehler', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
@@ -908,8 +949,8 @@ def main():
         updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
         updateLocalGitRepo('thecooltool', 'example-gcode', os.path.join(basePath, 'nc_files/examples'))
 
-        installMachinekitIni()
-        installMklauncher()
+        if version != softwareVersion:
+            updateSoftwareVersion(softwareVersion)
     except:
         print(traceback.format_exc())
         info("Error during execution of update script.")
