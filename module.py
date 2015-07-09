@@ -36,7 +36,7 @@ gitHubRepo = 'Sandy-Box-Updater'
 gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo + '/master/'
 sshExec = ''
 scpExec = ''
-softwareVersion = 2
+softwareVersion = 3
 
 
 def init():
@@ -749,6 +749,25 @@ def updateFat(dirName, fileCode, shaCode):
         info('yes\n')
 
 
+def installFile(fileName, remotePath, executable=False, sudo=True):
+    localPath = os.path.join(tempPath, fileName)
+    tmpRemotePath = posixpath.join('/tmp', fileName)
+    fileUrl = '%s/files/%s' % (gitHubUrl, fileName)
+
+    info('Installing %s.\n' % fileName)
+    downloadFile(fileUrl, localPath)
+    copyToHost(localPath, tmpRemotePath)
+    cmd = ''
+    if executable:
+        cmd += 'chmod +x %s; ' % tmpRemotePath
+    if sudo:
+        cmd += 'sudo '
+    cmd += 'mv %s %s' % (tmpRemotePath, remotePath)
+    output, retcode = runSshCommand(cmd)
+    if retcode != 0:
+        exitScript('Command failed: ' + output)
+
+
 def proceedMessage():
     info('This script will update the Sandy-Box system.\n')
     info('The update script will download a lot of data.\n')
@@ -771,7 +790,7 @@ def readSoftwareVersion():
     if not ('doesnotexist' in output):
         version = int(output.split('\n')[-2].strip())
 
-    info(' %i\n' % version)
+    info('%i\n' % version)
     return version
 
 
@@ -838,48 +857,6 @@ def checkWindowsProcesses():
                 info('wrong input, please try again\n')
 
 
-def fixPowerButton():
-    fileName = 'powerbtn-acpi-support.sh'
-    filePath = '/etc/acpi/%s' % fileName
-    info('Checking if power button script is installed...')
-    _, retcode = runSshCommand('grep "# Normal handling." %s' + filePath)
-
-    if retcode == 0:
-        info('not\n')
-        localPath = os.path.join(tempPath, fileName)
-        remotePath = posixpath.join('/tmp', fileName)
-        fileUrl = gitHubUrl + '/files/' + fileName
-        info('Updating power button script.\n')
-        downloadFile(fileUrl, localPath)
-        copyToHost(localPath, remotePath)
-        output, retcode = runSshCommand('chmod +x %s; sudo mv %s %s' % (remotePath, remotePath, filePath))
-        if retcode != 0:
-            exitScript('Command failed: ' + output)
-    else:
-        info('yes\n')
-
-
-def installMachinekitIni():
-    fileName = 'machinekit.ini'
-    filePath = '/etc/linuxcnc/%s' % fileName
-    info('Checking if machinekit.ini is up to date...')
-    _, retcode = runSshCommand('grep "THE_COOL_TOOL_VERSION = 1" %s' % filePath)
-
-    if retcode == 1:
-        info('not\n')
-        localPath = os.path.join(tempPath, fileName)
-        remotePath = posixpath.join('/tmp', fileName)
-        fileUrl = gitHubUrl + '/files/' + fileName
-        info('Updating machinekit.ini.\n')
-        downloadFile(fileUrl, localPath)
-        copyToHost(localPath, remotePath)
-        output, retcode = runSshCommand('sudo mv %s %s' % (remotePath, filePath))
-        if retcode != 0:
-            exitScript('Command failed: ' + output)
-    else:
-        info('yes\n')
-
-
 def installMklauncher():
     fileName = 'mklauncher.service'
     servicePath = '/etc/systemd/system/%s' % fileName
@@ -933,18 +910,22 @@ def main():
             if not makeHostPath('~/nc_files/share'):
                 exitScript('failed to create nc_files/share directory')
 
-            fixPowerButton()
-
             aptOfflineInstallPackages('machinekit-dev zip unzip')
 
-            installMachinekitIni()
+            installFile('powerbtn-acpi-support.sh', '/etc/acpi/powerbtn-acpi-support.sh', executable=True)
+            installFile('machinekit.ini', '/etc/linuxcnc/machinekit.ini')
             installMklauncher()
+
+        if version < 3:
+            installFile('sshd_config', '/etc/ssh/sshd_config')
+            aptOfflineInstallPackages('libzmq4-dev libczmq-dev libprotobuf-dev libprotobuf-c0-dev protobuf-c-compiler')
 
         updateHostGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
         updateHostGitRepo('cdsteinkuehler', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
         updateHostGitRepo('strahlex', 'Cetus', '~/Cetus', [''])
         updateHostGitRepo('strahlex', 'Machineface', '~/Machineface', [''])
-        #updateHostGitRepo('strahlex', 'mjpeg-streamer', '~/bin/mjpeg-streamer', [])
+        updateHostGitRepo('strahlex', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
+                                                                                 'sudo make -C mjpg-streamer-experimental install'])
         updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
         updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
         updateLocalGitRepo('thecooltool', 'example-gcode', os.path.join(basePath, 'nc_files/examples'))
