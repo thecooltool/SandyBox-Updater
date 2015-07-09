@@ -769,7 +769,7 @@ def readSoftwareVersion():
     version = 0
     output, _ = runSshCommand('cat /etc/software_version || echo doesnotexist')
     if not ('doesnotexist' in output):
-        version = int(output.strip())
+        version = int(output.split('\n')[-2].strip())
 
     info(' %i\n' % version)
     return version
@@ -777,8 +777,8 @@ def readSoftwareVersion():
 
 def updateSoftwareVersion(version):
     info('Updating software verison to %i... ' % version)
-    output, _ = runSshCommand('sudo su -c "echo %s > /etc/software_version" || echo failed' % str(version))
-    if ('failed' in output):
+    output, _ = runSshCommand('sudo su -c "echo %s > /etc/software_version" || echo updatefailed' % str(version))
+    if ('updatefailed' in output):
         exitScript('failed')
     else:
         info('done\n')
@@ -789,7 +789,7 @@ def readDogtag():
     dogtag = 'Unknown'
     output, _ = runSshCommand('cat /etc/dogtag || echo doesnotexist')
     if not ('doesnotexist' in output):
-        dogtag = output.strip()
+        dogtag = output.split('\n')[-2].strip()
 
     info('%s\n' % dogtag)
     return dogtag
