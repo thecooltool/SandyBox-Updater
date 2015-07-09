@@ -36,7 +36,7 @@ gitHubRepo = 'Sandy-Box-Updater'
 gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo + '/master/'
 sshExec = ''
 scpExec = ''
-softwareVersion = 3
+softwareVersion = 4
 
 
 def init():
@@ -881,6 +881,17 @@ def installMklauncher():
         info('yes\n')
 
 
+def updateGroups():
+    groups = ['netdev']
+    for group in groups:
+        info('Adding user to %s group... ' % group)
+        _, retcode = runSshCommand('sudo usermod -a -G %s machinekit' % group)
+        if retcode == 0:
+            info('done\n')
+        else:
+            exitScript('failed')
+
+
 def main():
     init()
 
@@ -919,6 +930,9 @@ def main():
         if version < 3:
             installFile('sshd_config', '/etc/ssh/sshd_config')
             aptOfflineInstallPackages('libzmq4-dev libczmq-dev libprotobuf-dev libprotobuf-c0-dev protobuf-c-compiler')
+
+        if version < 4:
+            updateGroups()
 
         updateHostGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
         updateHostGitRepo('cdsteinkuehler', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
