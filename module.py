@@ -497,8 +497,8 @@ def aptOfflineInstallPackages(names):
         info(' done\n')
 
 
-def getGitRepoSha(user, repo):
-    url = 'https://api.github.com/repos/' + user + '/' + repo + '/git/refs/heads/master'
+def getGitRepoSha(user, repo, branch='master'):
+    url = 'https://api.github.com/repos/%s/%s/git/refs/heads/%s' % (user, repo, branch)
 
     request = urllib2.Request(url)
     request.add_header('User-Agent', 'Mozilla/5.0')  # Spoof request to prevent caching
