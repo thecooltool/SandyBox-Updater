@@ -383,6 +383,16 @@ def unzipOnHost(zipFile, remotePath):
         return True
 
 
+def configureDpkg():
+    info('Configuring dpkg ... ')
+    output, retcode = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo dpkg --configure -a')
+    if retcode != 0:
+        exitScript(' failed\n')
+        return
+    else:
+        info('done\n')
+
+
 def checkPackage(name):
     info('Checking for package ' + name + ' ... ')
     output, retcode = runSshCommand('source /etc/profile; dpkg-query -l ' + name + ' || echo not_installed')
@@ -910,6 +920,8 @@ def main():
         testSshConnection()
 
         version = readSoftwareVersion()
+
+        configureDpkg()  # make sure dpkg status is sane
 
         if version < 1:
             installPackage('apt-offline_1.2_all.deb', 'apt-offline')
