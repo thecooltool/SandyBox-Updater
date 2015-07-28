@@ -29,27 +29,30 @@ import posixpath
 tempPath = ''
 basePath = '../../'
 basePath = os.path.abspath(basePath)
-rsaKey = os.path.expanduser('~/.ssh/sandy-box_rsa')
 aptOfflinePath = os.path.join(basePath, 'System/update/apt-offline/')
 gitHubUser = 'thecooltool'
 gitHubRepo = 'Sandy-Box-Updater'
 gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo + '/master/'
 sshExec = ''
 scpExec = ''
+scpHost = ''
 softwareVersion = 4
 
 
-def init():
+def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~/.ssh/sandy-box_rsa'):
     """ Initializes global variables for the specific system """
     global sshExec
     global scpExec
+    global scpHost
     system = platform.system()
+    rsaKey = os.path.expanduser(rsaKey)
     if system == 'Windows':
-        sshExec = os.path.join(basePath, 'Windows\Utils\Xming\plink.exe') + ' -pw machinekit -ssh -2 -X machinekit@192.168.7.2'
-        scpExec = os.path.join(basePath, 'Windows\Utils\Xming\pscp.exe') + ' -pw machinekit'
+        sshExec = os.path.join(basePath, 'Windows\Utils\Xming\plink.exe') + ' -pw %s -ssh -2 -X %s@%s' % (password, user, host)
+        scpExec = os.path.join(basePath, 'Windows\Utils\Xming\pscp.exe') + ' -pw %s' % (password)
     else:
-        sshExec = 'ssh -i ' + rsaKey + ' -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null machinekit@192.168.7.2'
-        scpExec = 'scp -i ' + rsaKey + ' -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null'
+        sshExec = 'ssh -i %s -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null %s@%s' % (rsaKey, user, host)
+        scpExec = 'scp -i %s -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' % (rsaKey)
+    scpHost = '%s@%s' % (user, host)
 
 
 def info(message):
@@ -313,7 +316,7 @@ def testSshConnection():
 def copyToHost(localFile, remoteFile):
     fullCommand = scpExec.split(' ')
     fullCommand.append(localFile)
-    fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
+    fullCommand.append(scpHost + ':' + remoteFile)
 
     info("Copying " + os.path.basename(localFile) + " to remote host ...")
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -333,7 +336,7 @@ def copyToHost(localFile, remoteFile):
 
 def copyFromHost(remoteFile, localFile):
     fullCommand = scpExec.split(' ')
-    fullCommand.append('machinekit@192.168.7.2:' + remoteFile)
+    fullCommand.append(scpHost + ':' + remoteFile)
     fullCommand.append(localFile)
 
     info("Copying " + os.path.basename(localFile) + " from remote host ...")
