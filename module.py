@@ -168,7 +168,13 @@ def resolveHttpRedirect(url, depth=0):
     if depth > 10:
         raise Exception("Redirected " + depth + " times, giving up.")
     o = urlparse.urlparse(url, allow_fragments=True)
-    conn = httplib.HTTPConnection(o.netloc)
+    conn = None
+    if o.scheme == 'https':
+        conn = httplib.HTTPSConnection(o.netloc)
+    elif o.scheme == 'http':
+        conn = httplib.HTTPConnection(o.netloc)
+    else:
+        return url
     path = o.path
     if o.query:
         path += '?' + o.query
