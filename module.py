@@ -955,11 +955,11 @@ def main():
         if version < 4:
             updateGroups()
 
-        updateHostGitRepo('strahlex', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
-        updateHostGitRepo('cdsteinkuehler', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
-        updateHostGitRepo('strahlex', 'Cetus', '~/Cetus', [''])
-        updateHostGitRepo('strahlex', 'Machineface', '~/Machineface', [''])
-        updateHostGitRepo('strahlex', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
+        updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
+        updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
+        updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''])
+        updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [''])
+        updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
                                                                                  'sudo make -C mjpg-streamer-experimental install'])
         updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
         updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
