@@ -394,7 +394,7 @@ def unzipOnHost(zipFile, remotePath):
 
 def configureDpkg():
     info('Configuring dpkg ... ')
-    output, retcode = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo dpkg --configure -a')
+    output, retcode = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo dpkg --configure -a --force-confold --force-confdef')
     if retcode != 0:
         exitScript(' failed\n')
         return
