@@ -747,7 +747,7 @@ def updateFat(dirName, fileCode, shaCode):
                         retries += 1
                         moveFilesWithProgress(itemPath, targetPath)
                         break
-                    except WindowsError as e:
+                    except OSError as e:
                         if retries < 3:  # Trying 3 times
                             time.sleep(1)
                         else:
@@ -756,7 +756,7 @@ def updateFat(dirName, fileCode, shaCode):
                 try:
                     shutil.move(itemPath, targetPath)
                     break
-                except IOError:
+                except OSError:
                     info('Warning! Can not move file ' + item + '\n')  # virus scanner?
         shutil.rmtree(tarTmpPath)
         info('done\n')
