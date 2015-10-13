@@ -139,7 +139,7 @@ def removeFilesWithProgress(path):
     if numFiles > 0:
         numRemoved = 0
 
-        for path, dirs, filenames in os.walk(path):
+        for path, dirs, filenames in os.walk(path, topdown=False):
 
             for sfile in filenames:
                 filePath = os.path.join(path, sfile)
@@ -151,8 +151,11 @@ def removeFilesWithProgress(path):
                 status = status + chr(8) * (len(status) + 1)
                 info(status)
 
+            for sdir in dirs:
+                os.rmdir(sdir)
+
     info('\n')
-    shutil.rmtree(path)  # remove empty dirs
+    shutil.rmdir(path)  # remove empty dirs
 
 
 def formatSize(num, suffix='B'):
