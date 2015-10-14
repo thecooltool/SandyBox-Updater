@@ -554,7 +554,11 @@ def compareHostGitRepo(user, repo, path):
         if 'parseerror' in output:
             return False
 
-    hostSha = output.split('\n')[-2]   # sha is on the semi-last line
+    outputlines = output.split('\n')
+    if len(outputlines) > 1:
+        hostSha = outputlines[-2]   # sha is on the semi-last line
+    else:
+        return False
 
     return remoteSha == hostSha
 
