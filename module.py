@@ -155,7 +155,8 @@ def removeFilesWithProgress(path):
                 os.rmdir(os.path.join(spath, sdir))
 
     info('\n')
-    os.rmdir(path)  # remove empty dirs
+    if os.path.exists(path):
+        os.rmdir(path)  # remove the main directory
 
 
 def formatSize(num, suffix='B'):
