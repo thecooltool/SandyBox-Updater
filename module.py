@@ -810,7 +810,9 @@ def readSoftwareVersion():
     version = 0
     output, _ = runSshCommand('cat /etc/software_version || echo doesnotexist')
     if not ('doesnotexist' in output):
-        version = int(output.split('\n')[-2].strip())
+        outputlines = output.split('\n')
+        if len(outputlines) > 1:
+            version = int(outputlines[-2].strip())
 
     info('%i\n' % version)
     return version
