@@ -974,7 +974,6 @@ def main():
                                                                                  'sudo make -C mjpg-streamer-experimental install'])
         updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
         updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
-        updateLocalGitRepo('thecooltool', 'example-gcode', os.path.join(basePath, 'nc_files/examples'))
 
         if version != softwareVersion:
             updateSoftwareVersion(softwareVersion)
