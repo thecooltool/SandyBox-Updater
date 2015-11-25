@@ -36,7 +36,7 @@ gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo
 sshExec = ''
 scpExec = ''
 scpHost = ''
-softwareVersion = 4
+softwareVersion = 5
 
 
 def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~/.ssh/sandy-box_rsa'):
@@ -922,6 +922,15 @@ def updateGroups():
             exitScript('failed')
 
 
+def updateUuid():
+    info('Updating SandyBox UUID')
+    _, retcode = runSshCommand('UUID=`cat /proc/sys/kernel/random/uuid`; sudo sed -i \'s/^MKUUID=.*/MKUUID=\'"$UUID"\'/\' /etc/linuxcnc/machinekit.ini')
+    if retcode == 0:
+        info('done\n')
+    else:
+        exitScript('failed')
+
+
 def main():
     init()
 
@@ -965,6 +974,10 @@ def main():
 
         if version < 4:
             updateGroups()
+
+        if version < 5:
+            installFile('70-persistent-net.rules', '/etc/udev/rules.d/70-persistent-net.rules')
+            updateUuid()
 
         updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
         updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
