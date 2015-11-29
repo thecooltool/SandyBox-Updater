@@ -844,6 +844,15 @@ def readDogtag():
     return dogtag
 
 
+def checkExperimental():
+    indicatorFile = os.path.join(basePath, 'System/update/experimental')
+    experimental = os.path.isfile(indicatorFile)
+    if experimental:
+        info('WARNING: Experimental update sources activated\n')
+        info('   Delete %s to activate stable update sources\n' % indicatorFile)
+    return experimental
+
+
 def checkWindowsProcessesBase(execs):
     cmd = 'WMIC PROCESS get Commandline'
     info('Checking running applications...\n')
@@ -940,6 +949,9 @@ def main():
     createTempPath()
 
     try:
+        # check if this update should use experimental sources
+        experimental = checkExperimental()
+
         updateFat('Windows', 'e15f7e62ff63fdade6538381669e4e78', '1657018afa545b87e2b5d51863d60b34')
         updateFat('Linux', 'd70f61b60df2bcda149105b74b47687d', '9o1BPRcTzJPfor8')
         updateFat('Mac', '16d9028d3fac53777fddca1e526c8437', '14bd0a2f48dc4f7f72755956bdf5a6cc')
@@ -979,14 +991,24 @@ def main():
             installFile('70-persistent-net.rules', '/etc/udev/rules.d/70-persistent-net.rules')
             updateUuid()
 
-        updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
-        updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
-        updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''])
-        updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [''])
-        updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
+        if not experimental:
+            updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
+            updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
+            updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''])
+            updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [''])
+            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
                                                                                  'sudo make -C mjpg-streamer-experimental install'])
-        updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
-        updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
+            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+        else:
+            updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
+            updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
+            updateHostGitRepo('strahlex', 'Cetus', '~/Cetus', [''])
+            updateHostGitRepo('strahlex', 'Machineface', '~/Machineface', [''])
+            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
+                                                                                        'sudo make -C mjpg-streamer-experimental install'])
+            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
+            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
 
         if version != softwareVersion:
             updateSoftwareVersion(softwareVersion)
