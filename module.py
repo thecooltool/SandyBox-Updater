@@ -542,8 +542,8 @@ def getGitRepoSha(user, repo, branch='master'):
     return repoObject['object']['sha']
 
 
-def compareHostGitRepo(user, repo, path):
-    remoteSha = getGitRepoSha(user, repo)
+def compareHostGitRepo(user, repo, path, branch='master'):
+    remoteSha = getGitRepoSha(user, repo, branch)
 
     done = True
     output, retcode = runSshCommand('cd ' + path + ';git rev-parse HEAD || echo parseerror')
@@ -565,8 +565,8 @@ def compareHostGitRepo(user, repo, path):
     return remoteSha == hostSha
 
 
-def compareLocalGitRepo(user, repo, path):
-    remoteSha = getGitRepoSha(user, repo)
+def compareLocalGitRepo(user, repo, path, branch='master'):
+    remoteSha = getGitRepoSha(user, repo, branch)
 
     shaFile = os.path.join(path, 'git.sha')
     if os.path.exists(shaFile):
@@ -579,12 +579,12 @@ def compareLocalGitRepo(user, repo, path):
         return False
 
 
-def downloadGitRepo(user, repo, path):
-    url = 'https://github.com/' + user + '/' + repo + '/zipball/master'
+def downloadGitRepo(user, repo, path, branch='master'):
+    url = 'https://github.com/%s/%s/zipball/%s' % (user, repo, branch)
     downloadFile(url, path)
 
 
-def updateHostGitRepo(user, repo, path, commands):
+def updateHostGitRepo(user, repo, path, commands, branch='master'):
     necessary = False
     fileName = repo + '.zip'
     localFile = os.path.join(tempPath, fileName)
@@ -597,12 +597,12 @@ def updateHostGitRepo(user, repo, path, commands):
         necessary = True
 
     if not necessary:
-        necessary = not compareHostGitRepo(user, repo, path)
+        necessary = not compareHostGitRepo(user, repo, path, branch)
 
     if necessary:
         info('not\n')
 
-        downloadGitRepo(user, repo, localFile)
+        downloadGitRepo(user, repo, localFile, branch)
 
         if copyToHost(localFile, hostFile) != 0:
             exitScript('copy failed')
@@ -639,7 +639,7 @@ def updateHostGitRepo(user, repo, path, commands):
         info('yes\n')
 
 
-def updateLocalGitRepo(user, repo, path):
+def updateLocalGitRepo(user, repo, path, branch='master'):
     necessary = False
     fileName = repo + '.zip'
     localFile = os.path.join(tempPath, fileName)
@@ -651,12 +651,12 @@ def updateLocalGitRepo(user, repo, path):
         necessary = True
 
     if not necessary:
-        necessary = not compareLocalGitRepo(user, repo, path)
+        necessary = not compareLocalGitRepo(user, repo, path, branch)
 
     if necessary:
         info('not\n')
 
-        downloadGitRepo(user, repo, localFile)
+        downloadGitRepo(user, repo, localFile, branch)
 
         if os.path.exists(path):
             shutil.rmtree(path)
