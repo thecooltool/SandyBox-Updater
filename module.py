@@ -36,7 +36,7 @@ gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo
 sshExec = ''
 scpExec = ''
 scpHost = ''
-softwareVersion = 5
+softwareVersion = 6
 
 
 def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~/.ssh/sandy-box_rsa'):
@@ -514,7 +514,26 @@ def aptOfflineInstallPackages(names):
 
     aptOfflineBase('--install-packages ' + names + ' --update')
     info('installing packages ... ')
-    output, retcode = runSshCommand('sudo apt-get install -y ' + names + ' || echo installerror')
+    output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get install -y %s || echo installerror' % names)
+    if 'installerror' in output:
+        exitScript(' failed\n')
+    else:
+        info(' done\n')
+
+
+def aptOfflineRemovePackages(names):
+    namesList = names.split(' ')
+    necessary = False
+    for name in namesList:
+        if checkPackage(name):
+            necessary = True
+            break
+
+    if not necessary:
+        return
+
+    info('removing packages ...')
+    output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get remove -y %s || echo installerror' % names)
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
@@ -966,6 +985,9 @@ def main():
 
         if version < 1:
             installPackage('apt-offline_1.2_all.deb', 'apt-offline')
+
+        if version < 6:
+            aptOfflineRemovePackages('c9-core-installer')
 
         aptOfflineUpdate()
         aptOfflineUpgrade()
