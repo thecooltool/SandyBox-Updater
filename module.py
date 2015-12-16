@@ -486,15 +486,25 @@ def aptOfflineUpdate():
 
 def aptOfflineUpgrade():
     info('Checking if upgrades are available ... ')
-    output, retcode = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -u -y')
+    output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -u -y')
     if '0 upgraded, 0 newly installed, 0 to remove' in output:
         info('no\n')
         return
     else:
         info('yes\n')
+        if 'The following packages have been kept back:' in output:
+            packages = []
+            for line in output.split('\n'):
+                if line[:2] != '  ':
+                    continue
+                for pkg in line.split(' '):
+                    if pkg != ' ':
+                        packages.append(pkg)
+            aptOfflineInstallPackages(' '.join(packages))
+
     aptOfflineBase('--upgrade')
     info('Upgrading packages ... ')
-    output, retcode = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -y -q || echo installerror')
+    output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -y -q || echo installerror')
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
