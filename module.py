@@ -36,7 +36,7 @@ gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo
 sshExec = ''
 scpExec = ''
 scpHost = ''
-softwareVersion = 6
+softwareVersion = 7
 
 
 def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~/.ssh/sandy-box_rsa'):
@@ -492,15 +492,6 @@ def aptOfflineUpgrade():
         return
     else:
         info('yes\n')
-        if 'The following packages have been kept back:' in output:
-            packages = []
-            for line in output.split('\n'):
-                if line[:2] != '  ':
-                    continue
-                for pkg in line.split(' '):
-                    if pkg != ' ':
-                        packages.append(pkg)
-            aptOfflineInstallPackages(' '.join(packages))
 
     aptOfflineBase('--upgrade')
     info('Upgrading packages ... ')
@@ -1022,6 +1013,9 @@ def main():
         if version < 5:
             installFile('70-persistent-net.rules', '/etc/udev/rules.d/70-persistent-net.rules')
             updateUuid()
+
+        if version < 7:
+            aptOfflineInstallPackages('libczmq-dev libczmq2 machinekit machinekit-dev machinekit-xenomai python-zmq')
 
         if not experimental:
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
