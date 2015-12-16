@@ -502,13 +502,16 @@ def aptOfflineUpgrade():
         info(' done\n')
 
 
-def aptOfflineInstallPackages(names):
+def aptOfflineInstallPackages(names, force=False):
     namesList = names.split(' ')
     necessary = False
-    for name in namesList:
-        if not checkPackage(name):
-            necessary = True
-            break
+    if force:
+        necessary = True
+    else:
+        for name in namesList:
+            if not checkPackage(name):
+                necessary = True
+                break
 
     if not necessary:
         return
@@ -1015,7 +1018,7 @@ def main():
             updateUuid()
 
         if version < 7:
-            aptOfflineInstallPackages('libczmq-dev libczmq2 machinekit machinekit-dev machinekit-xenomai python-zmq')
+            aptOfflineInstallPackages('libczmq-dev libczmq2 machinekit machinekit-dev machinekit-xenomai python-zmq', force=True)
 
         if not experimental:
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
