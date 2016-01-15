@@ -36,7 +36,7 @@ gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo
 sshExec = ''
 scpExec = ''
 scpHost = ''
-softwareVersion = 7
+softwareVersion = 8
 
 
 def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~/.ssh/sandy-box_rsa'):
@@ -1008,7 +1008,7 @@ def main():
 
         if version < 3:
             installFile('sshd_config', '/etc/ssh/sshd_config')
-            aptOfflineInstallPackages('libzmq4-dev libczmq-dev libprotobuf-dev libprotobuf-c0-dev protobuf-c-compiler')
+            aptOfflineInstallPackages('libzmq3-dev libczmq-dev libprotobuf-dev libprotobuf-c0-dev protobuf-c-compiler')
 
         if version < 4:
             updateGroups()
@@ -1019,6 +1019,9 @@ def main():
 
         if version < 7:
             aptOfflineInstallPackages('libczmq-dev libczmq2 machinekit machinekit-dev machinekit-xenomai python-zmq', force=True)
+
+        if version < 8:
+            aptOfflineInstallPackages('libzmq3-dev')  # package has been renamed
 
         if not experimental:
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
