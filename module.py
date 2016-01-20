@@ -963,6 +963,16 @@ def updateUuid():
         exitScript('failed')
 
 
+def updateDateTime():
+    info('Updating datetime from host')
+    timestamp = int(time.time())
+    _, retcode = runSshCommand('sudo date -s @%i' % timestamp)
+    if retcode == 0:
+        info('done\n')
+    else:
+        exitScript('failed')
+
+
 def main():
     init()
 
@@ -983,6 +993,7 @@ def main():
 
         testSshConnection()
 
+        updateDateTime()  # make sure the system time is correct
         version = readSoftwareVersion()
 
         configureDpkg()  # make sure dpkg status is sane
