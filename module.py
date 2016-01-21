@@ -697,16 +697,44 @@ def updateLocalGitRepo(user, repo, path, branch='master'):
         info('done\n')
 
         info('Moving files ... ')
-        repoDir = ''
+        # Remove old dirs and files
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                removeFilesWithProgress(path)
+            else:
+                os.remove(path)
+        os.makedirs(path)
+
+        # get repo dir
         for item in os.listdir(tmpPath):
             repoDir = os.path.join(tmpPath, item)
             if os.path.isdir(repoDir):
                 break
+
+        # move files
         for item in os.listdir(repoDir):
             itemPath = os.path.join(repoDir, item)
             targetPath = os.path.join(path, item)
-            shutil.move(itemPath, targetPath)
-        shutil.rmtree(tmpPath)
+
+            # Moving with workaround for problem on Windows
+            if os.path.isdir(itemPath):
+                retries = 0
+                while True:
+                    try:
+                        retries += 1
+                        moveFilesWithProgress(itemPath, targetPath)
+                        break
+                    except OSError as e:
+                        if retries < 3:  # Trying 3 times
+                            time.sleep(1)
+                        else:
+                            raise e       # Then raise exception
+            else:
+                try:
+                    shutil.move(itemPath, targetPath)
+                except OSError:
+                    info('Warning! Cannot move file ' + item + '\n')  # virus scanner?
+        shutil.rmtree(tmpPath)  # cleanup temp tree
         info('done\n')
 
         info('Writing sha file ... ')
@@ -787,9 +815,8 @@ def updateFat(dirName, fileCode, shaCode):
             else:
                 try:
                     shutil.move(itemPath, targetPath)
-                    break
                 except OSError:
-                    info('Warning! Can not move file ' + item + '\n')  # virus scanner?
+                    info('Warning! Cannot move file ' + item + '\n')  # virus scanner?
         shutil.rmtree(tarTmpPath)
         info('done\n')
 
