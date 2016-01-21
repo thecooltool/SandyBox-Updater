@@ -1,6 +1,6 @@
 '''
-Sandy-Box updater script
-Updates the Sandy-Box controller from TheCoolTool (thecooltool.com)
+SandyBox updater script
+Updates the SandyBox controller from TheCoolTool (thecooltool.com)
 
 Copyright 2014-2015 Alexander Roessler @ TheCoolTool
 
@@ -319,7 +319,7 @@ def testSshConnection():
         info('failed\n')
         print(output)
         info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
-        info('Please check if your Sandy-Box is connected to the computer.\n')
+        info('Please check if your SandyBox is connected to the computer.\n')
         info('Make sure all drivers are installed and networking is working correctly.\n')
         exitScript()
 
@@ -820,7 +820,7 @@ def installFile(fileName, remotePath, executable=False, sudo=True):
 
 
 def proceedMessage():
-    info('This script will update the Sandy-Box system.\n')
+    info('This script will update the SandyBox system.\n')
     info('The update script will download a lot of data.\n')
     while True:
         info('Do you want to proceed? (y/n): ')
@@ -992,7 +992,10 @@ def main():
             updateFat('Doc', 'b7c09c5654587aa32160aee60d2d2c5f', 'e22919092f76ba8a87fce4ed885376df')
             updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1', '0f44627c04c56a7e55e590268a21329b')
         else:
+            updateLocalGitRepo('thecooltool', 'SandyBox-Windows', os.path.join(basePath, 'Windows'))
             updateLocalGitRepo('thecooltool', 'SandyBox-Linux', os.path.join(basePath, 'Linux'))
+            updateLocalGitRepo('thecooltool', 'SandyBox-Mac', os.path.join(basePath, 'Mac'))
+            updateLocalGitRepo('thecooltool', 'SandyBox-Doc', os.path.join(basePath, 'Doc'))
 
         testSshConnection()
 
