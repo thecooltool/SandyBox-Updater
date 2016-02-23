@@ -1012,17 +1012,11 @@ def main():
         # check if this update should use experimental sources
         experimental = checkExperimental()
 
-        if not experimental:
-            updateFat('Windows', 'e15f7e62ff63fdade6538381669e4e78', '1657018afa545b87e2b5d51863d60b34')
-            updateFat('Linux', 'd70f61b60df2bcda149105b74b47687d', '9o1BPRcTzJPfor8')
-            updateFat('Mac', '16d9028d3fac53777fddca1e526c8437', '14bd0a2f48dc4f7f72755956bdf5a6cc')
-            updateFat('Doc', 'b7c09c5654587aa32160aee60d2d2c5f', 'e22919092f76ba8a87fce4ed885376df')
-            updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1', '0f44627c04c56a7e55e590268a21329b')
-        else:
-            updateLocalGitRepo('thecooltool', 'SandyBox-Windows', os.path.join(basePath, 'Windows'))
-            updateLocalGitRepo('thecooltool', 'SandyBox-Linux', os.path.join(basePath, 'Linux'))
-            updateLocalGitRepo('thecooltool', 'SandyBox-Mac', os.path.join(basePath, 'Mac'))
-            updateLocalGitRepo('thecooltool', 'SandyBox-Doc', os.path.join(basePath, 'Doc'))
+        updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1', '0f44627c04c56a7e55e590268a21329b')
+        updateLocalGitRepo('thecooltool', 'SandyBox-Windows', os.path.join(basePath, 'Windows'))
+        updateLocalGitRepo('thecooltool', 'SandyBox-Linux', os.path.join(basePath, 'Linux'))
+        updateLocalGitRepo('thecooltool', 'SandyBox-Mac', os.path.join(basePath, 'Mac'))
+        updateLocalGitRepo('thecooltool', 'SandyBox-Doc', os.path.join(basePath, 'Doc'))
 
         testSshConnection()
 
