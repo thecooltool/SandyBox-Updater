@@ -1069,6 +1069,8 @@ def main():
 
         if not experimental:
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
+            updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
+
             updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
             updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''])
             updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [''])
