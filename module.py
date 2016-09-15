@@ -1075,8 +1075,8 @@ def main():
         else:
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
             updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
-            updateHostGitRepo('strahlex', 'Cetus', '~/Cetus', [''])
-            updateHostGitRepo('strahlex', 'Machineface', '~/Machineface', [''])
+            updateHostGitRepo('machinekoder', 'Cetus', '~/Cetus', [''])
+            updateHostGitRepo('machinekoder', 'Machineface', '~/Machineface', [''])
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
                                                                                         'sudo make -C mjpg-streamer-experimental install'])
             updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='prufix')
