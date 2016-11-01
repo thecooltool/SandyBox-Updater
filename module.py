@@ -1079,7 +1079,7 @@ def main():
             updateHostGitRepo('machinekoder', 'Machineface', '~/Machineface', [''])
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
                                                                                         'sudo make -C mjpg-streamer-experimental install'])
-            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='prufix')
+            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='master')
             updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
 
         if version != softwareVersion:
