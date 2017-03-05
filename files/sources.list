@@ -1,0 +1,23 @@
+deb http://ftp.us.debian.org/debian/ wheezy main contrib non-free
+#deb-src http://ftp.us.debian.org/debian/ wheezy main contrib non-free
+
+deb http://ftp.us.debian.org/debian/ wheezy-updates main contrib non-free
+#deb-src http://ftp.us.debian.org/debian/ wheezy-updates main contrib non-free
+
+deb http://security.debian.org/ wheezy/updates main contrib non-free
+#deb-src http://security.debian.org/ wheezy/updates main contrib non-free
+
+#deb http://ftp.debian.org/debian wheezy-backports main contrib non-free
+##deb-src http://ftp.debian.org/debian wheezy-backports main contrib non-free
+
+deb http://deb.machinekit.io/debian wheezy main
+#deb-src http://deb.machinekit.io/debian wheezy main
+
+#Kernel source (repos.rcn-ee.net) : https://github.com/RobertCNelson/linux-stable-rcn-ee
+#
+#git clone https://github.com/RobertCNelson/linux-stable-rcn-ee
+#cd ./linux-stable-rcn-ee
+#git checkout `uname -r` -b tmp
+#
+deb [arch=armhf] http://repos.rcn-ee.net/debian/ wheezy main
+#deb-src [arch=armhf] http://repos.rcn-ee.net/debian/ wheezy main
