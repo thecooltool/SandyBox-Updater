@@ -36,7 +36,7 @@ gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo
 sshExec = ''
 scpExec = ''
 scpHost = ''
-softwareVersion = 8
+softwareVersion = 9
 
 
 def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~/.ssh/sandy-box_rsa'):
@@ -1031,8 +1031,10 @@ def main():
         if version < 6:
             aptOfflineRemovePackages('c9-core-installer')
 
-        aptOfflineUpdate()
-        aptOfflineUpgrade()
+        if version < 9:
+            installFile('sources.list', '/etc/apt/sources.list')
+
+        aptOfflineInstallPackages('machinekit', force=True)  # force update of Machinekit
 
         if version < 2:
             if not makeHostPath('~/nc_files/share'):
@@ -1079,7 +1081,7 @@ def main():
             updateHostGitRepo('qtquickvcp', 'Machineface', '~/Machineface', [''])
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
                                                                                         'sudo make -C mjpg-streamer-experimental install'])
-            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='master')
+            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='develop')
             updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
 
         if version != softwareVersion:
