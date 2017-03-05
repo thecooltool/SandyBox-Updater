@@ -970,6 +970,15 @@ def installMklauncher():
         info('yes\n')
 
 
+def installRepositorySignature():
+    info('Installing Machinekit repository signature...')
+    _, retcode = runSshCommand('sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 43DDF224')
+    if retcode == 0:
+        info('done\n')
+    else:
+        exitScript('failed')
+
+
 def updateGroups():
     groups = ['netdev']
     for group in groups:
@@ -1032,9 +1041,10 @@ def main():
             aptOfflineRemovePackages('c9-core-installer')
 
         if version < 9:
+            installRepositorySignature()
             installFile('sources.list', '/etc/apt/sources.list')
 
-        aptOfflineInstallPackages('machinekit', force=True)  # force update of Machinekit
+        aptOfflineInstallPackages('machinekit machinekit-dev machinekit-xenomai', force=True)  # force update of Machinekit
 
         if version < 2:
             if not makeHostPath('~/nc_files/share'):
