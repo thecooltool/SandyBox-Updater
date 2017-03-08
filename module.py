@@ -1044,6 +1044,7 @@ def main():
             installRepositorySignature()
             installFile('sources.list', '/etc/apt/sources.list')
 
+        aptOfflineUpdate()
         aptOfflineInstallPackages('machinekit machinekit-dev machinekit-xenomai', force=True)  # force update of Machinekit
 
         if version < 2:
