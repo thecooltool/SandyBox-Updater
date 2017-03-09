@@ -516,7 +516,7 @@ def aptOfflineInstallPackages(names, force=False):
     if not necessary:
         return
 
-    aptOfflineBase('--install-packages ' + names + ' --update')
+    aptOfflineBase('--install-packages %s --verbose' % names)  # verbose option is need or it will fail
     info('installing packages ... ')
     output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get install -y %s || echo installerror' % names)
     if 'installerror' in output:
