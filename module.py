@@ -1046,7 +1046,6 @@ def main():
             installFile('sources.list', '/etc/apt/sources.list')
 
         aptOfflineUpdate()
-        aptOfflineInstallPackages('machinekit machinekit-dev machinekit-xenomai', force=True)  # force update of Machinekit
 
         if version < 2:
             if not makeHostPath('~/nc_files/share'):
@@ -1087,6 +1086,7 @@ def main():
             updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
             updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
         else:
+            aptOfflineInstallPackages('machinekit machinekit-dev machinekit-xenomai', force=True)  # force update of Machinekit
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
             updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
             updateHostGitRepo('qtquickvcp', 'Cetus', '~/Cetus', [''])
