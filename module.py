@@ -451,6 +451,10 @@ def aptOfflineBase(command):
     if copyFromHost(hostSig, localSig) != 0:
         exitScript('copy failed')
 
+    if os.path.getsize(localSig) == 0:
+        info('Packages already up to date\n')
+        return False
+
     if os.path.isfile(localBundle):
         os.remove(localBundle)
 
@@ -472,12 +476,14 @@ def aptOfflineBase(command):
         exitScript('copy failed')
 
     info('Installing repository update ... ')
-    output, retcode = runSshCommand('sudo apt-offline install ' + hostBundle + ' || echo installerror')
+    output, retcode = runSshCommand('sudo apt-offline install --skip-changelog --allow-unauthenticated --skip-bug-reports %s || echo installerror' % hostBundle)
     if 'installerror' in output:
         print(output)
         exitScript(' failed')
     else:
         info(' done\n')
+
+    return True
 
 
 def aptOfflineUpdate():
@@ -516,7 +522,8 @@ def aptOfflineInstallPackages(names, force=False):
     if not necessary:
         return
 
-    aptOfflineBase('--install-packages %s --verbose' % names)  # verbose option is need or it will fail
+    if not aptOfflineBase('--install-packages %s --verbose' % names):  # verbose option is needed or it will fail
+        return
     info('installing packages ... ')
     output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get install -y %s || echo installerror' % names)
     if 'installerror' in output:
@@ -550,7 +557,12 @@ def getGitRepoSha(user, repo, branch='master'):
     request = urllib.request.Request(url)
     request.add_header('User-Agent', 'Mozilla/5.0')  # Spoof request to prevent caching
     request.add_header('Pragma', 'no-cache')
-    u = urllib.request.build_opener().open(request)
+    try:
+        u = urllib.request.build_opener().open(request)
+    except urllib.error.HTTPError as e:
+        info('Requesting Git SHA failed: %s\n' % e)
+        info('This could be a result of GitHubs rate limitation.\n')
+        exitScript('Please try again later.\n')
 
     data = b''
     blockSize = 8192
@@ -1038,14 +1050,14 @@ def main():
         if version < 1:
             if not makeHostPath('~/nc_files/share'):
                 exitScript('failed to create nc_files/share directory')
+            if not makeHostPath('~/bin'):
+                exitScript('failed to create bin directory')
             installFile('powerbtn-acpi-support.sh', '/etc/acpi/powerbtn-acpi-support.sh', executable=True)
             installFile('machinekit.ini', '/etc/linuxcnc/machinekit.ini')
             installMklauncher()
             installFile('sshd_config', '/etc/ssh/sshd_config')
             installFile('70-persistent-net.rules', '/etc/udev/rules.d/70-persistent-net.rules')
             updateUuid()
-
-        aptOfflineUpdate()
 
         if not experimental:
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
@@ -1058,6 +1070,7 @@ def main():
             updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='v2')
             updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
         else:
+            aptOfflineUpdate()
             aptOfflineInstallPackages('machinekit machinekit-rt-preempt', force=True)  # force update of Machinekit
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
             updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
