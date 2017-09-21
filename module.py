@@ -1073,12 +1073,13 @@ def main():
             aptOfflineUpdate()
             aptOfflineInstallPackages('machinekit machinekit-rt-preempt', force=True)  # force update of Machinekit
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
-            updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
+            updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
+
             updateHostGitRepo('qtquickvcp', 'Cetus', '~/Cetus', [''])
             updateHostGitRepo('qtquickvcp', 'Machineface', '~/Machineface', [''])
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
                               ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
-            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='develop')
+            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/repos/machinekit-configs', [], branch='develop')
             updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
 
         if version != softwareVersion:
