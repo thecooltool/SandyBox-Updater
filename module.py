@@ -200,7 +200,7 @@ def downloadFile(url, filePath):
         request.add_header('Pragma', 'no-cache')
         u = urllib.request.build_opener().open(request)
         meta = u.info()
-        contentLength = meta.getheader('content-length')
+        contentLength = meta.get('content-length')
         if contentLength is not None:   # loop until request is valid
             break
     fileSize = int(contentLength)
@@ -293,7 +293,7 @@ def runSshCommand(command, timeout=0.0):
     while(True):
         retcode = p.poll()  # returns None while subprocess is running
 
-        line = p.stdout.readline()
+        line = p.stdout.readline().decode('utf-8')
         if 'If you trust this host, enter "y" to add the key to' in line:
             p.stdin.write(b'y\n')    # accept
         if 'The server\'s host key does not match the one PuTTY' in line:
@@ -333,7 +333,7 @@ def copyToHost(localFile, remoteFile):
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
         retcode = p.poll()  # returns None while subprocess is running
-        line = p.stdout.readline()
+        line = p.stdout.readline().decode('utf-8')
         if 'If you trust this host, enter "y" to add the key to' in line:
             p.stdin.write(b'y\n')    # accept
         if 'The server\'s host key does not match the one PuTTY' in line:
@@ -354,7 +354,7 @@ def copyFromHost(remoteFile, localFile):
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
     while(True):
         retcode = p.poll()  # returns None while subprocess is running
-        line = p.stdout.readline()
+        line = p.stdout.readline().decode('utf-8')
         if 'If you trust this host, enter "y" to add the key to' in line:
             p.stdin.write(b'y\n')  # accept
         if 'The server\'s host key does not match the one PuTTY' in line:
