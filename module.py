@@ -144,7 +144,7 @@ def removeFilesWithProgress(path):
 
             for sfile in filenames:
                 filePath = os.path.join(spath, sfile)
-                os.chmod(filePath, 0777)  # remove any file flags
+                os.chmod(filePath, 777)  # remove any file flags
                 os.remove(filePath)
                 numRemoved += 1
 
