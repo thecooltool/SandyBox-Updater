@@ -32,12 +32,12 @@ basePath = os.path.abspath(basePath)
 aptOfflinePath = os.path.join(basePath, 'System/update/apt-offline/')
 gitHubUser = 'thecooltool'
 gitHubRepo = 'SandyBox-Updater'
-gitHubBranch = 'master'
+gitHubBranch = 'v2'
 gitHubUrl = 'https://raw.githubusercontent.com/%s/%s/%s/' % (gitHubUser, gitHubRepo, gitHubBranch)
 sshExec = ''
 scpExec = ''
 scpHost = ''
-softwareVersion = 9
+softwareVersion = 1
 
 
 def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~/.ssh/sandy-box_rsa'):
@@ -1024,10 +1024,10 @@ def main():
         experimental = checkExperimental()
 
         updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1', '0f44627c04c56a7e55e590268a21329b')
-        updateLocalGitRepo('thecooltool', 'SandyBox-Windows', os.path.join(basePath, 'Windows'))
-        updateLocalGitRepo('thecooltool', 'SandyBox-Linux', os.path.join(basePath, 'Linux'))
-        updateLocalGitRepo('thecooltool', 'SandyBox-Mac', os.path.join(basePath, 'Mac'))
-        updateLocalGitRepo('thecooltool', 'SandyBox-Doc', os.path.join(basePath, 'Doc'))
+        updateLocalGitRepo('thecooltool', 'SandyBox-Windows', os.path.join(basePath, 'Windows'), branch='v2')
+        updateLocalGitRepo('thecooltool', 'SandyBox-Linux', os.path.join(basePath, 'Linux'), branch='v2')
+        updateLocalGitRepo('thecooltool', 'SandyBox-Mac', os.path.join(basePath, 'Mac'), branch='v2')
+        updateLocalGitRepo('thecooltool', 'SandyBox-Doc', os.path.join(basePath, 'Doc'), branch='v2')
 
         testSshConnection()
 
@@ -1037,63 +1037,35 @@ def main():
         configureDpkg()  # make sure dpkg status is sane
 
         if version < 1:
-            installPackage('apt-offline_1.2_all.deb', 'apt-offline')
-
-        if version < 6:
-            aptOfflineRemovePackages('c9-core-installer')
-
-        if version < 9:
-            installRepositorySignature()
-            installFile('sources.list', '/etc/apt/sources.list')
-
-        aptOfflineUpdate()
-
-        if version < 2:
             if not makeHostPath('~/nc_files/share'):
                 exitScript('failed to create nc_files/share directory')
-
-            aptOfflineInstallPackages('machinekit-dev zip unzip')
-
             installFile('powerbtn-acpi-support.sh', '/etc/acpi/powerbtn-acpi-support.sh', executable=True)
             installFile('machinekit.ini', '/etc/linuxcnc/machinekit.ini')
             installMklauncher()
-
-        if version < 3:
             installFile('sshd_config', '/etc/ssh/sshd_config')
-            aptOfflineInstallPackages('libzmq3-dev libczmq-dev libprotobuf-dev libprotobuf-c0-dev protobuf-c-compiler')
-
-        if version < 4:
-            updateGroups()
-
-        if version < 5:
             installFile('70-persistent-net.rules', '/etc/udev/rules.d/70-persistent-net.rules')
             updateUuid()
 
-        if version < 7:
-            aptOfflineInstallPackages('libczmq-dev libczmq2 machinekit machinekit-dev machinekit-xenomai python-zmq', force=True)
-
-        if version < 8:
-            aptOfflineInstallPackages('libzmq3-dev')  # package has been renamed
+        aptOfflineUpdate()
 
         if not experimental:
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
             updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
 
-            updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
-            updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''])
-            updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [''])
-            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
-                                                                                 'sudo make -C mjpg-streamer-experimental install'])
-            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
+            updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [], branch='v2')
+            updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [], branch='v2')
+            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
+                              ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
+            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='v2')
             updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
         else:
-            aptOfflineInstallPackages('machinekit machinekit-dev machinekit-xenomai', force=True)  # force update of Machinekit
+            aptOfflineInstallPackages('machinekit machinekit-rt-preempt', force=True)  # force update of Machinekit
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
             updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
             updateHostGitRepo('qtquickvcp', 'Cetus', '~/Cetus', [''])
             updateHostGitRepo('qtquickvcp', 'Machineface', '~/Machineface', [''])
-            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
-                                                                                        'sudo make -C mjpg-streamer-experimental install'])
+            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
+                              ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
             updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='develop')
             updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
 
