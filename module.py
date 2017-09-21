@@ -10,12 +10,11 @@ Copyright 2014-2017 Alexander Roessler @ TheCoolTool
 import subprocess
 import tempfile
 import shutil
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import sys
 import os
 import json
-import urlparse
-import httplib
+import http.client
 import zipfile
 import tarfile
 import platform
@@ -105,7 +104,7 @@ def makedirs(dest):
 def moveFilesWithProgress(src, dest):
     numFiles = countFiles(src)
 
-    print("Moving directory {0} ...".format(os.path.basename(dest)))
+    print(("Moving directory {0} ...".format(os.path.basename(dest))))
     if numFiles > 0:
         makedirs(dest)
 
@@ -136,7 +135,7 @@ def moveFilesWithProgress(src, dest):
 def removeFilesWithProgress(path):
     numFiles = countFiles(path)
 
-    print("Removing directory {0} ...".format(os.path.basename(path)))
+    print(("Removing directory {0} ...".format(os.path.basename(path))))
     if numFiles > 0:
         numRemoved = 0
 
@@ -173,12 +172,12 @@ def resolveHttpRedirect(url, depth=0):
     """ Recursively follow redirects until there isn't a location header """
     if depth > 10:
         raise Exception("Redirected " + depth + " times, giving up.")
-    o = urlparse.urlparse(url, allow_fragments=True)
+    o = urllib.parse.urlparse(url, allow_fragments=True)
     conn = None
     if o.scheme == 'https':
-        conn = httplib.HTTPSConnection(o.netloc)
+        conn = http.client.HTTPSConnection(o.netloc)
     elif o.scheme == 'http':
-        conn = httplib.HTTPConnection(o.netloc)
+        conn = http.client.HTTPConnection(o.netloc)
     else:
         return url
     path = o.path
@@ -196,17 +195,17 @@ def resolveHttpRedirect(url, depth=0):
 def downloadFile(url, filePath):
     url = resolveHttpRedirect(url)
     while True:
-        request = urllib2.Request(url)
+        request = urllib.request.Request(url)
         request.add_header('User-Agent', 'Mozilla/5.0')  # Spoof request to prevent caching
         request.add_header('Pragma', 'no-cache')
-        u = urllib2.build_opener().open(request)
+        u = urllib.request.build_opener().open(request)
         meta = u.info()
         contentLength = meta.getheader('content-length')
         if contentLength is not None:   # loop until request is valid
             break
     fileSize = int(contentLength)
     fileSizeStr = formatSize(fileSize)
-    print("Downloading {0} ...".format(os.path.basename(filePath)))
+    print(("Downloading {0} ...".format(os.path.basename(filePath))))
 
     f = open(filePath, 'wb')
     fileSizeDl = 0
@@ -548,10 +547,10 @@ def aptOfflineRemovePackages(names):
 def getGitRepoSha(user, repo, branch='master'):
     url = 'https://api.github.com/repos/%s/%s/git/refs/heads/%s' % (user, repo, branch)
 
-    request = urllib2.Request(url)
+    request = urllib.request.Request(url)
     request.add_header('User-Agent', 'Mozilla/5.0')  # Spoof request to prevent caching
     request.add_header('Pragma', 'no-cache')
-    u = urllib2.build_opener().open(request)
+    u = urllib.request.build_opener().open(request)
 
     data = ''
     blockSize = 8192
@@ -1072,7 +1071,7 @@ def main():
         if version != softwareVersion:
             updateSoftwareVersion(softwareVersion)
     except:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
         info("Error during execution of update script.")
         sys.exit(1)
     else:
@@ -1081,4 +1080,3 @@ def main():
         info('You can now close the terminal window\n')
     finally:
         clearTempPath()
-
