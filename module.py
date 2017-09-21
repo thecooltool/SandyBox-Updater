@@ -48,8 +48,8 @@ def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~
     system = platform.system()
     rsaKey = os.path.expanduser(rsaKey)
     if system == 'Windows':
-        sshExec = os.path.join(basePath, 'Windows\Utils\Xming\plink.exe') + ' -pw %s -ssh -2 -X %s@%s' % (password, user, host)
-        scpExec = os.path.join(basePath, 'Windows\Utils\Xming\pscp.exe') + ' -pw %s' % (password)
+        sshExec = os.path.join(basePath, 'Windows\\Utils\\Xming\\plink.exe') + ' -pw %s -ssh -2 -X %s@%s' % (password, user, host)
+        scpExec = os.path.join(basePath, 'Windows\\Utils\\Xming\\pscp.exe') + ' -pw %s' % (password)
     else:
         sshExec = 'ssh -i %s -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null %s@%s' % (rsaKey, user, host)
         scpExec = 'scp -i %s -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' % (rsaKey)
