@@ -2,7 +2,7 @@
 SandyBox updater script
 Updates the SandyBox controller from TheCoolTool (thecooltool.com)
 
-Copyright 2014-2015 Alexander Roessler @ TheCoolTool
+Copyright 2014-2017 Alexander Roessler @ TheCoolTool
 
 @package module
 '''
@@ -32,7 +32,8 @@ basePath = os.path.abspath(basePath)
 aptOfflinePath = os.path.join(basePath, 'System/update/apt-offline/')
 gitHubUser = 'thecooltool'
 gitHubRepo = 'SandyBox-Updater'
-gitHubUrl = 'https://raw.githubusercontent.com/' + gitHubUser + '/' + gitHubRepo + '/master/'
+gitHubBranch = 'master'
+gitHubUrl = 'https://raw.githubusercontent.com/%s/%s/%s/' % (gitHubUser, gitHubRepo, gitHubBranch)
 sshExec = ''
 scpExec = ''
 scpHost = ''
