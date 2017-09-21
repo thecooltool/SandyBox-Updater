@@ -552,7 +552,7 @@ def getGitRepoSha(user, repo, branch='master'):
     request.add_header('Pragma', 'no-cache')
     u = urllib.request.build_opener().open(request)
 
-    data = ''
+    data = b''
     blockSize = 8192
     while True:
         buffer = u.read(blockSize)
@@ -561,7 +561,7 @@ def getGitRepoSha(user, repo, branch='master'):
 
         data += buffer
 
-    repoObject = json.loads(data)
+    repoObject = json.loads(data.decode('utf-8'))
     return repoObject['object']['sha']
 
 
