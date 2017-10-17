@@ -852,6 +852,9 @@ def installFile(fileName, remotePath, executable=False, sudo=True):
         cmd += 'chmod +x %s; ' % tmpRemotePath
     if sudo:
         cmd += 'sudo '
+    cmd += 'mkdir -p %s; ' % remotePath
+    if sudo:
+        cmd += 'sudo '
     cmd += 'mv %s %s' % (tmpRemotePath, remotePath)
     output, retcode = runSshCommand(cmd)
     if retcode != 0:
