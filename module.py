@@ -1082,7 +1082,7 @@ def main():
             updateHostGitRepo('qtquickvcp', 'Machineface', '~/Machineface', [''])
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
                               ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
-            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/repos/machinekit-configs', [], branch='develop')
+            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='develop')
             updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
 
         if version != softwareVersion:
