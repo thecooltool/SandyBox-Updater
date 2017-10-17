@@ -927,7 +927,7 @@ def checkWindowsProcessesBase(execs):
                 searchString = os.path.join(basePath, path)
             else:
                 searchString = path
-            if searchString in line:
+            if searchString in line.decode('utf-8'):
                 info('Please close ' + application + ' before updating\n')
                 return False
     return True
