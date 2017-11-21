@@ -1080,12 +1080,12 @@ def main():
             updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
 
             updateHostGitRepo('thecooltool', 'beaglebone-universal-io', '~/bin/beaglebone-universal-io', ['make', 'sudo make install'])
-            updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''])
-            updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [''])
+            updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''], branch='v1')
+            updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [''], branch='v1')
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
                                                                                  'sudo make -C mjpg-streamer-experimental install'])
-            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [])
-            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='v1')
+            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [], branch='v1')
         else:
             aptOfflineInstallPackages('machinekit machinekit-dev machinekit-xenomai', force=True)  # force update of Machinekit
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
@@ -1095,7 +1095,7 @@ def main():
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer', ['make -C mjpg-streamer-experimental',
                                                                                         'sudo make -C mjpg-streamer-experimental install'])
             updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='develop')
-            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [], branch='v1')
 
         if version != softwareVersion:
             updateSoftwareVersion(softwareVersion)
