@@ -32,7 +32,7 @@ basePath = os.path.abspath(basePath)
 aptOfflinePath = os.path.join(basePath, 'System/update/apt-offline/')
 gitHubUser = 'thecooltool'
 gitHubRepo = 'SandyBox-Updater'
-gitHubBranch = 'master'
+gitHubBranch = 'v1'
 gitHubUrl = 'https://raw.githubusercontent.com/%s/%s/%s/' % (gitHubUser, gitHubRepo, gitHubBranch)
 sshExec = ''
 scpExec = ''
@@ -240,7 +240,7 @@ def updateScript():
 
     info('Checking if updater is up to date ... \n')
     localSha = None
-    remoteSha = getGitRepoSha(gitHubUser, gitHubRepo)
+    remoteSha = getGitRepoSha(gitHubUser, gitHubRepo, brach=gitHubBranch)
 
     if os.path.exists(localFile):
         with open(localFile) as f:
