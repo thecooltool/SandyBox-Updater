@@ -706,7 +706,7 @@ def updateLocalGitRepo(user, repo, path, branch='master'):
         zipComment = ''
         with zipfile.ZipFile(localFile, 'r') as zip:
             zip.extractall(tmpPath)
-            zipComment = zip.comment
+            zipComment = zip.comment.decode('utf-8')
             zip.close()
         info('done\n')
 
