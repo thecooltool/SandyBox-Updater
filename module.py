@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import shutil
 import urllib.request, urllib.error, urllib.parse
+import ssl
 import sys
 import os
 import json
@@ -175,7 +176,7 @@ def resolveHttpRedirect(url, depth=0):
     o = urllib.parse.urlparse(url, allow_fragments=True)
     conn = None
     if o.scheme == 'https':
-        conn = http.client.HTTPSConnection(o.netloc)
+        conn = http.client.HTTPSConnection(o.netloc, context=ssl._create_unverified_context())
     elif o.scheme == 'http':
         conn = http.client.HTTPConnection(o.netloc)
     else:
@@ -198,7 +199,8 @@ def downloadFile(url, filePath):
         request = urllib.request.Request(url)
         request.add_header('User-Agent', 'Mozilla/5.0')  # Spoof request to prevent caching
         request.add_header('Pragma', 'no-cache')
-        u = urllib.request.build_opener().open(request)
+        handler = urllib.request.HTTPSHandler(context=ssl._create_unverified_context())
+        u = urllib.request.build_opener(handler).open(request)
         meta = u.info()
         contentLength = meta.get('content-length')
         if contentLength is not None:   # loop until request is valid
@@ -930,7 +932,7 @@ def checkWindowsProcessesBase(execs):
                 searchString = os.path.join(basePath, path)
             else:
                 searchString = path
-            if searchString in line.decode('utf-8'):
+            if searchString in line.decode('ISO-8859-1'):
                 info('Please close ' + application + ' before updating\n')
                 return False
     return True
