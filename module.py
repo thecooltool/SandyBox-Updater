@@ -240,7 +240,7 @@ def updateScript():
 
     info('Checking if updater is up to date ... \n')
     localSha = None
-    remoteSha = getGitRepoSha(gitHubUser, gitHubRepo, brach=gitHubBranch)
+    remoteSha = getGitRepoSha(gitHubUser, gitHubRepo, branch=gitHubBranch)
 
     if os.path.exists(localFile):
         with open(localFile) as f:
