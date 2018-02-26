@@ -1080,8 +1080,8 @@ def main():
             updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
             updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
 
-            updateHostGitRepo('qtquickvcp', 'Cetus', '~/Cetus', [''])
-            updateHostGitRepo('qtquickvcp', 'Machineface', '~/Machineface', [''])
+            updateHostGitRepo('machinekit', 'Cetus', '~/Cetus', [''])
+            updateHostGitRepo('machinekit', 'Machineface', '~/Machineface', [''])
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
                               ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
             updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='develop')
