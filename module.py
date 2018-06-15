@@ -929,6 +929,11 @@ def checkActiveVersion():
             'WARNING: Experimental update sources activated\n'
             'Delete {} to activate stable update sources\n'.format(indicator_file)
         )
+    elif active_version == 'sandybox':
+        info(
+            'INFO: Using SandyBox update scripts\n'
+            'Delete {} to activate default update sources\n'.format(indicator_file)
+        )
     return active_version
 
 
