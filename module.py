@@ -914,13 +914,22 @@ def readDogtag():
     return dogtag
 
 
-def checkExperimental():
-    indicatorFile = os.path.join(basePath, 'System/update/experimental')
-    experimental = os.path.isfile(indicatorFile)
-    if experimental:
-        info('WARNING: Experimental update sources activated\n')
-        info('   Delete %s to activate stable update sources\n' % indicatorFile)
-    return experimental
+def checkActiveVersion():
+    versions = 'experimental', 'sandybox'
+    updater_path = os.path.join(basePath, 'System/update')
+    active_version = 'default'
+    indicator_file = None
+    for version in versions:
+        indicator_file = os.path.join(updater_path, version)
+        if os.path.isfile(indicator_file):
+            active_version = version
+            break
+    if active_version == 'experimental':
+        info(
+            'WARNING: Experimental update sources activated\n'
+            'Delete {} to activate stable update sources\n'.format(indicator_file)
+        )
+    return active_version
 
 
 def checkWindowsProcessesBase(execs):
@@ -1039,7 +1048,7 @@ def main():
 
     try:
         # check if this update should use experimental sources
-        experimental = checkExperimental()
+        active_version = checkActiveVersion()
 
         updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1', '0f44627c04c56a7e55e590268a21329b')
         updateLocalGitRepo('thecooltool', 'SandyBox-Windows', os.path.join(basePath, 'Windows'), branch='v2')
@@ -1066,7 +1075,7 @@ def main():
             installFile('70-persistent-net.rules', '/etc/udev/rules.d/70-persistent-net.rules')
             updateUuid()
 
-        if not experimental:
+        if active_version == 'default':
             updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
 
             updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [], branch='v2')
@@ -1075,7 +1084,18 @@ def main():
                               ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
             updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='v2')
             updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
-        else:
+
+        elif active_version == 'sandybox':
+            updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
+
+            updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [], branch='v3')
+            updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [], branch='v3')
+            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
+                              ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
+            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='v3')
+            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+
+        elif active_version == 'experimental':
             aptOfflineUpdate()
             aptOfflineInstallPackages('machinekit machinekit-rt-preempt', force=True)  # force update of Machinekit
             updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
