@@ -1065,7 +1065,6 @@ def main():
             updateUuid()
 
         if not experimental:
-            updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
             updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
 
             updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [], branch='v2')
@@ -1077,7 +1076,6 @@ def main():
         else:
             aptOfflineUpdate()
             aptOfflineInstallPackages('machinekit machinekit-rt-preempt', force=True)  # force update of Machinekit
-            updateHostGitRepo('thecooltool', 'AP-Hotspot', '~/bin/AP-Hotspot', ['sudo make install'])
             updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
 
             updateHostGitRepo('machinekit', 'Cetus', '~/Cetus', [''])
