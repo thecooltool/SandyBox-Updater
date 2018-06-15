@@ -1,29 +1,32 @@
-'''
+# coding=utf-8
+"""
 SandyBox updater script
 Updates the SandyBox controller from TheCoolTool (thecooltool.com)
 
 Copyright 2014-2017 Alexander Roessler @ TheCoolTool
 
 @package module
-'''
+"""
 
-import subprocess
-import tempfile
-import shutil
-import urllib.request, urllib.error, urllib.parse
-import ssl
-import sys
-import os
-import json
-import http.client
-import zipfile
-import tarfile
-import platform
-import time
-import threading
 import errno
-import traceback
+import http.client
+import json
+import os
+import platform
 import posixpath
+import shutil
+import ssl
+import subprocess
+import sys
+import tarfile
+import tempfile
+import threading
+import time
+import traceback
+import urllib.error
+import urllib.parse
+import urllib.request
+import zipfile
 
 # Global variables
 tempPath = ''
@@ -172,9 +175,8 @@ def formatSize(num, suffix='B'):
 def resolveHttpRedirect(url, depth=0):
     """ Recursively follow redirects until there isn't a location header """
     if depth > 10:
-        raise Exception("Redirected " + depth + " times, giving up.")
+        raise Exception("Redirected {} times, giving up.".format(depth))
     o = urllib.parse.urlparse(url, allow_fragments=True)
-    conn = None
     if o.scheme == 'https':
         conn = http.client.HTTPSConnection(o.netloc, context=ssl._create_unverified_context())
     elif o.scheme == 'http':
@@ -278,7 +280,6 @@ def processTimeout(p):
 
 def runSshCommand(command, timeout=0.0):
     lines = ''
-    retcode = 0
     timer = None
     fullCommand = sshExec.split(' ')
     fullCommand.append(command)
@@ -292,7 +293,7 @@ def runSshCommand(command, timeout=0.0):
         timer = threading.Timer(timeout, processTimeout, [p])
         timer.start()
 
-    while(True):
+    while True:
         retcode = p.poll()  # returns None while subprocess is running
 
         line = p.stdout.readline().decode('utf-8')
@@ -303,7 +304,7 @@ def runSshCommand(command, timeout=0.0):
 
         lines += line
 
-        if(retcode is not None):
+        if retcode is not None:
             break
 
     if timer is not None:
@@ -333,14 +334,14 @@ def copyToHost(localFile, remoteFile):
 
     info("Copying " + os.path.basename(localFile) + " to remote host ...")
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
-    while(True):
+    while True:
         retcode = p.poll()  # returns None while subprocess is running
         line = p.stdout.readline().decode('utf-8')
         if 'If you trust this host, enter "y" to add the key to' in line:
             p.stdin.write(b'y\n')    # accept
         if 'The server\'s host key does not match the one PuTTY' in line:
             p.stdin.write(b'y\n')    # accept
-        if(retcode is not None):
+        if retcode is not None:
             break
 
     info(" done\n")
@@ -354,14 +355,14 @@ def copyFromHost(remoteFile, localFile):
 
     info("Copying " + os.path.basename(localFile) + " from remote host ...")
     p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
-    while(True):
+    while True:
         retcode = p.poll()  # returns None while subprocess is running
         line = p.stdout.readline().decode('utf-8')
         if 'If you trust this host, enter "y" to add the key to' in line:
             p.stdin.write(b'y\n')  # accept
         if 'The server\'s host key does not match the one PuTTY' in line:
             p.stdin.write(b'y\n')    # accept
-        if(retcode is not None):
+        if retcode is not None:
             break
 
     info(" done\n")
@@ -565,6 +566,7 @@ def getGitRepoSha(user, repo, branch='master'):
         info('Requesting Git SHA failed: %s\n' % e)
         info('This could be a result of GitHubs rate limitation.\n')
         exitScript('Please try again later.\n')
+        return
 
     data = b''
     blockSize = 8192
@@ -703,7 +705,6 @@ def updateLocalGitRepo(user, repo, path, branch='master'):
             shutil.rmtree(tmpPath)
 
         info('Extracting zip file  ... ')
-        zipComment = ''
         with zipfile.ZipFile(localFile, 'r') as zip:
             zip.extractall(tmpPath)
             zipComment = zip.comment.decode('utf-8')
@@ -720,10 +721,13 @@ def updateLocalGitRepo(user, repo, path, branch='master'):
         os.makedirs(path)
 
         # get repo dir
+        repoDir = None
         for item in os.listdir(tmpPath):
             repoDir = os.path.join(tmpPath, item)
             if os.path.isdir(repoDir):
                 break
+        if not repoDir:
+            exitScript('Could not find repository directory fir {}'.format(repo))
 
         # move files
         for item in os.listdir(repoDir):
@@ -871,7 +875,6 @@ def proceedMessage():
         proceed = sys.stdin.readline().strip()
         if proceed == 'n':
             sys.exit(1)
-            return
         elif proceed == 'y':
             break
         else:
@@ -956,7 +959,6 @@ def checkWindowsProcesses():
             proceed = sys.stdin.readline().strip()
             if proceed == 'n':
                 sys.exit(1)
-                return
             elif proceed == 'y':
                 break
             else:
