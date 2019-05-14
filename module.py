@@ -36,7 +36,8 @@ aptOfflinePath = os.path.join(basePath, 'System/update/apt-offline/')
 gitHubUser = 'thecooltool'
 gitHubRepo = 'SandyBox-Updater'
 gitHubBranch = 'v2'
-gitHubUrl = 'https://raw.githubusercontent.com/%s/%s/%s/' % (gitHubUser, gitHubRepo, gitHubBranch)
+gitHubUrl = 'https://raw.githubusercontent.com/%s/%s/%s/' % (
+    gitHubUser, gitHubRepo, gitHubBranch)
 sshExec = ''
 scpExec = ''
 scpHost = ''
@@ -51,11 +52,15 @@ def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~
     system = platform.system()
     rsaKey = os.path.expanduser(rsaKey)
     if system == 'Windows':
-        sshExec = os.path.join(basePath, 'Windows\\Utils\\Xming\\plink.exe') + ' -pw %s -ssh -2 -X %s@%s' % (password, user, host)
-        scpExec = os.path.join(basePath, 'Windows\\Utils\\Xming\\pscp.exe') + ' -pw %s' % (password)
+        sshExec = os.path.join(basePath, 'Windows\\Utils\\Xming\\plink.exe') + \
+            ' -pw %s -ssh -2 -X %s@%s' % (password, user, host)
+        scpExec = os.path.join(
+            basePath, 'Windows\\Utils\\Xming\\pscp.exe') + ' -pw %s' % (password)
     else:
-        sshExec = 'ssh -i %s -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null %s@%s' % (rsaKey, user, host)
-        scpExec = 'scp -i %s -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' % (rsaKey)
+        sshExec = 'ssh -i %s -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null %s@%s' % (
+            rsaKey, user, host)
+        scpExec = 'scp -i %s -oBatchMode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' % (
+            rsaKey)
     scpHost = '%s@%s' % (user, host)
 
 
@@ -178,7 +183,8 @@ def resolveHttpRedirect(url, depth=0):
         raise Exception("Redirected {} times, giving up.".format(depth))
     o = urllib.parse.urlparse(url, allow_fragments=True)
     if o.scheme == 'https':
-        conn = http.client.HTTPSConnection(o.netloc, context=ssl._create_unverified_context())
+        conn = http.client.HTTPSConnection(
+            o.netloc, context=ssl._create_unverified_context())
     elif o.scheme == 'http':
         conn = http.client.HTTPConnection(o.netloc)
     else:
@@ -199,9 +205,11 @@ def downloadFile(url, filePath):
     url = resolveHttpRedirect(url)
     while True:
         request = urllib.request.Request(url)
-        request.add_header('User-Agent', 'Mozilla/5.0')  # Spoof request to prevent caching
+        # Spoof request to prevent caching
+        request.add_header('User-Agent', 'Mozilla/5.0')
         request.add_header('Pragma', 'no-cache')
-        handler = urllib.request.HTTPSHandler(context=ssl._create_unverified_context())
+        handler = urllib.request.HTTPSHandler(
+            context=ssl._create_unverified_context())
         u = urllib.request.build_opener(handler).open(request)
         meta = u.info()
         contentLength = meta.get('content-length')
@@ -236,7 +244,8 @@ def updateScript():
 
     localFile = os.path.join(basePath, 'System/update/sha/update.sha')
     scriptPath = os.path.abspath(__file__)
-    currentScript = os.path.splitext(scriptPath)[0] + '.py'  # fixes problem on Win64
+    currentScript = os.path.splitext(
+        scriptPath)[0] + '.py'  # fixes problem on Win64
     scriptName = os.path.basename(currentScript)
     remoteScript = gitHubUrl + scriptName
     localScript = os.path.join(tempPath, scriptName)
@@ -333,7 +342,8 @@ def copyToHost(localFile, remoteFile):
     fullCommand.append(scpHost + ':' + remoteFile)
 
     info("Copying " + os.path.basename(localFile) + " to remote host ...")
-    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE,
+                         stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
     while True:
         retcode = p.poll()  # returns None while subprocess is running
         line = p.stdout.readline().decode('utf-8')
@@ -354,7 +364,8 @@ def copyFromHost(remoteFile, localFile):
     fullCommand.append(localFile)
 
     info("Copying " + os.path.basename(localFile) + " from remote host ...")
-    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(fullCommand, stdout=subprocess.PIPE,
+                         stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
     while True:
         retcode = p.poll()  # returns None while subprocess is running
         line = p.stdout.readline().decode('utf-8')
@@ -370,28 +381,33 @@ def copyFromHost(remoteFile, localFile):
 
 
 def checkHostPath(remotePath):
-    output, retcode = runSshCommand('ls ' + remotePath + ' || echo doesnotexist')
+    output, retcode = runSshCommand(
+        'ls ' + remotePath + ' || echo doesnotexist')
     return not ('doesnotexist' in output)
 
 
 def removeHostPath(remotePath):
-    output, retcode = runSshCommand('rm -r -f ' + remotePath + ' || echo removefailed')
+    output, retcode = runSshCommand(
+        'rm -r -f ' + remotePath + ' || echo removefailed')
     return not ('removefailed' in output)
 
 
 def moveHostPath(src, dst):
-    output, retcode = runSshCommand('mv ' + src + ' ' + dst + ' || echo removefailed')
+    output, retcode = runSshCommand(
+        'mv ' + src + ' ' + dst + ' || echo removefailed')
     return not ('removefailed' in output)
 
 
 def makeHostPath(remotePath):
-    output, retcode = runSshCommand('mkdir -p ' + remotePath + ' || echo mkdirfailed')
+    output, retcode = runSshCommand(
+        'mkdir -p ' + remotePath + ' || echo mkdirfailed')
     return not ('mkdirfailed' in output)
 
 
 def unzipOnHost(zipFile, remotePath):
     info('unzipping ' + os.path.basename(remotePath) + ' ... ')
-    output, retcode = runSshCommand('unzip ' + zipFile + ' -d ' + remotePath + ' || echo unzipfailed')
+    output, retcode = runSshCommand(
+        'unzip ' + zipFile + ' -d ' + remotePath + ' || echo unzipfailed')
     if 'unzipfailed' in output:
         info(' failed\n')
         return False
@@ -402,7 +418,8 @@ def unzipOnHost(zipFile, remotePath):
 
 def configureDpkg():
     info('Configuring dpkg ... ')
-    output, retcode = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo dpkg --configure -a --force-confold --force-confdef')
+    output, retcode = runSshCommand(
+        'DEBIAN_FRONTEND=noninteractive sudo dpkg --configure -a --force-confold --force-confdef')
     if retcode != 0:
         exitScript(' failed\n')
         return
@@ -412,7 +429,8 @@ def configureDpkg():
 
 def checkPackage(name):
     info('Checking for package ' + name + ' ... ')
-    output, retcode = runSshCommand('source /etc/profile; dpkg-query -l ' + name + ' || echo not_installed')
+    output, retcode = runSshCommand(
+        'source /etc/profile; dpkg-query -l ' + name + ' || echo not_installed')
     if 'not_installed' in output:
         info('not installed\n')
         return False
@@ -430,7 +448,8 @@ def installPackage(package, name):
         downloadFile(remotePackage, localPackage)
         copyToHost(localPackage, hostPackage)
         info('Intalling package ' + package + ' ... ')
-        output, retcode = runSshCommand('source /etc/profile; sudo dpkg -i ' + hostPackage + ' || echo installerror')
+        output, retcode = runSshCommand(
+            'source /etc/profile; sudo dpkg -i ' + hostPackage + ' || echo installerror')
         if 'installerror' in output:
             exitScript('installing package ' + package + ' failed')
         info('done\n')
@@ -445,7 +464,8 @@ def aptOfflineBase(command):
     hostBundle = posixpath.join('/tmp', bundleName)
 
     info('Updating repositories ...')
-    output, retcode = runSshCommand('sudo apt-offline set ' + command + ' ' + hostSig + ' || echo updateerror')
+    output, retcode = runSshCommand(
+        'sudo apt-offline set ' + command + ' ' + hostSig + ' || echo updateerror')
     if 'updateerror' in output:
         exitScript(' failed')
     else:
@@ -461,7 +481,8 @@ def aptOfflineBase(command):
     if os.path.isfile(localBundle):
         os.remove(localBundle)
 
-    command = sys.executable + ' apt-offline get --threads 2 --bundle ' + localBundle + ' ' + localSig
+    command = sys.executable + ' apt-offline get --threads 2 --bundle ' + \
+        localBundle + ' ' + localSig
     command = command.split(' ')
     info('Downloading updates ...')
     p = subprocess.Popen(command, cwd=aptOfflinePath)
@@ -479,7 +500,8 @@ def aptOfflineBase(command):
         exitScript('copy failed')
 
     info('Installing repository update ... ')
-    output, retcode = runSshCommand('sudo apt-offline install --skip-changelog --allow-unauthenticated --skip-bug-reports %s || echo installerror' % hostBundle)
+    output, retcode = runSshCommand(
+        'sudo apt-offline install --skip-changelog --allow-unauthenticated --skip-bug-reports %s || echo installerror' % hostBundle)
     if 'installerror' in output:
         print(output)
         exitScript(' failed')
@@ -495,7 +517,8 @@ def aptOfflineUpdate():
 
 def aptOfflineUpgrade():
     info('Checking if upgrades are available ... ')
-    output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -u -y')
+    output, _ = runSshCommand(
+        'DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -u -y')
     if '0 upgraded, 0 newly installed, 0 to remove' in output:
         info('no\n')
         return
@@ -504,7 +527,8 @@ def aptOfflineUpgrade():
 
     aptOfflineBase('--upgrade')
     info('Upgrading packages ... ')
-    output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -y -q || echo installerror')
+    output, _ = runSshCommand(
+        'DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -y -q || echo installerror')
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
@@ -525,10 +549,12 @@ def aptOfflineInstallPackages(names, force=False):
     if not necessary:
         return
 
-    if not aptOfflineBase('--install-packages %s --verbose' % names):  # verbose option is needed or it will fail
+    # verbose option is needed or it will fail
+    if not aptOfflineBase('--install-packages %s --verbose' % names):
         return
     info('installing packages ... ')
-    output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get install -y %s || echo installerror' % names)
+    output, _ = runSshCommand(
+        'DEBIAN_FRONTEND=noninteractive sudo apt-get install -y %s || echo installerror' % names)
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
@@ -547,7 +573,8 @@ def aptOfflineRemovePackages(names):
         return
 
     info('removing packages ...')
-    output, _ = runSshCommand('DEBIAN_FRONTEND=noninteractive sudo apt-get remove -y %s || echo installerror' % names)
+    output, _ = runSshCommand(
+        'DEBIAN_FRONTEND=noninteractive sudo apt-get remove -y %s || echo installerror' % names)
     if 'installerror' in output:
         exitScript(' failed\n')
     else:
@@ -555,10 +582,12 @@ def aptOfflineRemovePackages(names):
 
 
 def getGitRepoSha(user, repo, branch='master'):
-    url = 'https://api.github.com/repos/%s/%s/git/refs/heads/%s' % (user, repo, branch)
+    url = 'https://api.github.com/repos/%s/%s/git/refs/heads/%s' % (
+        user, repo, branch)
 
     request = urllib.request.Request(url)
-    request.add_header('User-Agent', 'Mozilla/5.0')  # Spoof request to prevent caching
+    # Spoof request to prevent caching
+    request.add_header('User-Agent', 'Mozilla/5.0')
     request.add_header('Pragma', 'no-cache')
     try:
         u = urllib.request.build_opener().open(request)
@@ -585,13 +614,15 @@ def compareHostGitRepo(user, repo, path, branch='master'):
     remoteSha = getGitRepoSha(user, repo, branch)
 
     done = True
-    output, retcode = runSshCommand('cd ' + path + ';git rev-parse HEAD || echo parseerror')
+    output, retcode = runSshCommand(
+        'cd ' + path + ';git rev-parse HEAD || echo parseerror')
     if 'parseerror' in output:
         done = False
 
     if not done:    # remote is not git repo, try to read sha file
         shaFile = path + '/git.sha'  # os path join would fail on Windows
-        output, retcode = runSshCommand('cat ' + shaFile + ' || echo parseerror')
+        output, retcode = runSshCommand(
+            'cat ' + shaFile + ' || echo parseerror')
         if 'parseerror' in output:
             return False
 
@@ -661,7 +692,8 @@ def updateHostGitRepo(user, repo, path, commands, branch='master'):
         if not removeHostPath(tmpPath):
             exitScript('remove failed')
 
-        output, retcode = runSshCommand('unzip -z ' + hostFile + ' >> ' + shaFile + ' || echo commanderror')
+        output, retcode = runSshCommand(
+            'unzip -z ' + hostFile + ' >> ' + shaFile + ' || echo commanderror')
         if 'commanderror' in output:
             exitScript('sha dump failed')
 
@@ -669,7 +701,8 @@ def updateHostGitRepo(user, repo, path, commands, branch='master'):
             if command == '':
                 continue
             info('executing ' + command + ' ... ')
-            output, retcode = runSshCommand('source /etc/profile; cd ' + path + '; ' + command + ' || echo commanderror')
+            output, retcode = runSshCommand(
+                'source /etc/profile; cd ' + path + '; ' + command + ' || echo commanderror')
             if 'commanderror' in output:
                 exitScript(' failed')
             else:
@@ -727,7 +760,8 @@ def updateLocalGitRepo(user, repo, path, branch='master'):
             if os.path.isdir(repoDir):
                 break
         if not repoDir:
-            exitScript('Could not find repository directory fir {}'.format(repo))
+            exitScript(
+                'Could not find repository directory fir {}'.format(repo))
 
         # move files
         for item in os.listdir(repoDir):
@@ -751,7 +785,8 @@ def updateLocalGitRepo(user, repo, path, branch='master'):
                 try:
                     shutil.move(itemPath, targetPath)
                 except OSError:
-                    info('Warning! Cannot move file ' + item + '\n')  # virus scanner?
+                    info('Warning! Cannot move file ' +
+                         item + '\n')  # virus scanner?
         shutil.rmtree(tmpPath)  # cleanup temp tree
         info('done\n')
 
@@ -768,7 +803,8 @@ def updateFat(dirName, fileCode, shaCode):
     necessary = False
     localShaFile = os.path.join(tempPath, dirName + '.sha')
     localTarFile = os.path.join(tempPath, dirName + '.tar.bz2')
-    tarShaFile = os.path.join(basePath, 'System/update/sha/' + dirName + '.sha')
+    tarShaFile = os.path.join(
+        basePath, 'System/update/sha/' + dirName + '.sha')
     remoteTarUrl = 'https://wolke.effet.info/index.php/s/' + fileCode + '/download'
     remoteShaUrl = 'https://wolke.effet.info/index.php/s/' + shaCode + '/download'
 
@@ -834,7 +870,8 @@ def updateFat(dirName, fileCode, shaCode):
                 try:
                     shutil.move(itemPath, targetPath)
                 except OSError:
-                    info('Warning! Cannot move file ' + item + '\n')  # virus scanner?
+                    info('Warning! Cannot move file ' +
+                         item + '\n')  # virus scanner?
         shutil.rmtree(tarTmpPath)
         info('done\n')
 
@@ -896,7 +933,8 @@ def readSoftwareVersion():
 
 def updateSoftwareVersion(version):
     info('Updating software verison to %i... ' % version)
-    output, _ = runSshCommand('sudo su -c "echo %s > /etc/software_version" || echo updatefailed' % str(version))
+    output, _ = runSshCommand(
+        'sudo su -c "echo %s > /etc/software_version" || echo updatefailed' % str(version))
     if ('updatefailed' in output):
         exitScript('failed')
     else:
@@ -927,12 +965,14 @@ def checkActiveVersion():
     if active_version == 'experimental':
         info(
             'WARNING: Experimental update sources activated\n'
-            'Delete {} to activate stable update sources\n'.format(indicator_file)
+            'Delete {} to activate stable update sources\n'.format(
+                indicator_file)
         )
     elif active_version == 'sandybox':
         info(
             'INFO: Using SandyBox update scripts\n'
-            'Delete {} to activate default update sources\n'.format(indicator_file)
+            'Delete {} to activate default update sources\n'.format(
+                indicator_file)
         )
     return active_version
 
@@ -1026,7 +1066,8 @@ def updateGroups():
 
 def updateUuid():
     info('Updating SandyBox UUID... ')
-    _, retcode = runSshCommand('UUID=`cat /proc/sys/kernel/random/uuid`; sudo sed -i \'s/^MKUUID=.*/MKUUID=\'"$UUID"\'/\' /etc/linuxcnc/machinekit.ini')
+    _, retcode = runSshCommand(
+        'UUID=`cat /proc/sys/kernel/random/uuid`; sudo sed -i \'s/^MKUUID=.*/MKUUID=\'"$UUID"\'/\' /etc/linuxcnc/machinekit.ini')
     if retcode == 0:
         info('done\n')
     else:
@@ -1055,11 +1096,16 @@ def main():
         # check if this update should use experimental sources
         active_version = checkActiveVersion()
 
-        updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1', '0f44627c04c56a7e55e590268a21329b')
-        updateLocalGitRepo('thecooltool', 'SandyBox-Windows', os.path.join(basePath, 'Windows'), branch='v2')
-        updateLocalGitRepo('thecooltool', 'SandyBox-Linux', os.path.join(basePath, 'Linux'), branch='v2')
-        updateLocalGitRepo('thecooltool', 'SandyBox-Mac', os.path.join(basePath, 'Mac'), branch='v2')
-        updateLocalGitRepo('thecooltool', 'SandyBox-Doc', os.path.join(basePath, 'Doc'), branch='v2')
+        updateFat('Other', '78b5b1487275bf3370dd6b21f92ce6a1',
+                  '0f44627c04c56a7e55e590268a21329b')
+        updateLocalGitRepo('thecooltool', 'SandyBox-Windows',
+                           os.path.join(basePath, 'Windows'), branch='v2')
+        updateLocalGitRepo('thecooltool', 'SandyBox-Linux',
+                           os.path.join(basePath, 'Linux'), branch='v2')
+        updateLocalGitRepo('thecooltool', 'SandyBox-Mac',
+                           os.path.join(basePath, 'Mac'), branch='v2')
+        updateLocalGitRepo('thecooltool', 'SandyBox-Doc',
+                           os.path.join(basePath, 'Doc'), branch='v2')
 
         testSshConnection()
 
@@ -1073,44 +1119,62 @@ def main():
                 exitScript('failed to create nc_files/share directory')
             if not makeHostPath('~/bin'):
                 exitScript('failed to create bin directory')
-            installFile('powerbtn-acpi-support.sh', '/etc/acpi/powerbtn-acpi-support.sh', executable=True)
+            installFile('powerbtn-acpi-support.sh',
+                        '/etc/acpi/powerbtn-acpi-support.sh', executable=True)
             installFile('machinekit.ini', '/etc/linuxcnc/machinekit.ini')
             installMklauncher()
             installFile('sshd_config', '/etc/ssh/sshd_config')
-            installFile('70-persistent-net.rules', '/etc/udev/rules.d/70-persistent-net.rules')
+            installFile('70-persistent-net.rules',
+                        '/etc/udev/rules.d/70-persistent-net.rules')
             updateUuid()
 
         if active_version == 'default':
-            updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
+            updateHostGitRepo('thecooltool', 'querierd',
+                              '~/bin/querierd', ['sudo make install'])
 
-            updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [], branch='v2')
-            updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [], branch='v2')
+            updateHostGitRepo('thecooltool', 'Cetus',
+                              '~/Cetus', [], branch='v2')
+            updateHostGitRepo('thecooltool', 'Machineface',
+                              '~/Machineface', [], branch='v2')
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
                               ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
-            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='v2')
-            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+            updateHostGitRepo('thecooltool', 'machinekit-configs',
+                              '~/machinekit-configs', [], branch='v2')
+            updateHostGitRepo('thecooltool', 'example-gcode',
+                              '~/nc_files/examples', [])
 
         elif active_version == 'sandybox':
-            updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
+            updateHostGitRepo('thecooltool', 'querierd',
+                              '~/bin/querierd', ['sudo make install'])
 
-            updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [], branch='v3')
-            updateHostGitRepo('thecooltool', 'Machineface', '~/Machineface', [], branch='v3')
+            updateHostGitRepo('thecooltool', 'Cetus',
+                              '~/Cetus', [], branch='v3')
+            updateHostGitRepo('thecooltool', 'Machineface',
+                              '~/Machineface', [], branch='v3')
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
                               ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
-            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='v3')
-            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+            updateHostGitRepo('thecooltool', 'machinekit-configs',
+                              '~/machinekit-configs', [], branch='v3')
+            updateHostGitRepo('thecooltool', 'example-gcode',
+                              '~/nc_files/examples', [])
 
         elif active_version == 'experimental':
             aptOfflineUpdate()
-            aptOfflineInstallPackages('machinekit machinekit-rt-preempt', force=True)  # force update of Machinekit
-            updateHostGitRepo('thecooltool', 'querierd', '~/bin/querierd', ['sudo make install'])
+            # force update of Machinekit
+            aptOfflineInstallPackages(
+                'machinekit machinekit-rt-preempt', force=True)
+            updateHostGitRepo('thecooltool', 'querierd',
+                              '~/bin/querierd', ['sudo make install'])
 
-            updateHostGitRepo('machinekit', 'Cetus', '~/Cetus', [''])
-            updateHostGitRepo('machinekit', 'Machineface', '~/Machineface', [''])
+            updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''])
+            updateHostGitRepo('machinekit', 'Machineface',
+                              '~/Machineface', [''])
             updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
                               ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
-            updateHostGitRepo('thecooltool', 'machinekit-configs', '~/machinekit-configs', [], branch='develop')
-            updateHostGitRepo('thecooltool', 'example-gcode', '~/nc_files/examples', [])
+            updateHostGitRepo('thecooltool', 'machinekit-configs',
+                              '~/machinekit-configs', [], branch='develop')
+            updateHostGitRepo('thecooltool', 'example-gcode',
+                              '~/nc_files/examples', [])
 
         if version != softwareVersion:
             updateSoftwareVersion(softwareVersion)
