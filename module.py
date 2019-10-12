@@ -1163,14 +1163,16 @@ def main():
             # force update of Machinekit
             aptOfflineInstallPackages(
                 'machinekit machinekit-rt-preempt', force=True)
+            aptOfflineInstallPackages(
+                'libopencv-dev libboost-program-options-dev libboost-log-dev protobuf-compiler clang')
+            updateHostGitRepo('machinekit', 'videoserver_pub', '~/bin/videoserver-pub',
+                  ['cmake . -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', 'make', 'sudo make install'])
             updateHostGitRepo('thecooltool', 'querierd',
                               '~/bin/querierd', ['sudo make install'])
 
             updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''])
             updateHostGitRepo('machinekit', 'Machineface',
                               '~/Machineface', [''])
-            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
-                              ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
             updateHostGitRepo('thecooltool', 'machinekit-configs',
                               '~/machinekit-configs', [], branch='develop')
             updateHostGitRepo('thecooltool', 'example-gcode',
@@ -1179,7 +1181,7 @@ def main():
         if version != softwareVersion:
             updateSoftwareVersion(softwareVersion)
     except:
-        print((traceback.format_exc()))
+        print(traceback.format_exc())
         info("Error during execution of update script.")
         sys.exit(1)
     else:
