@@ -41,7 +41,7 @@ gitHubUrl = 'https://raw.githubusercontent.com/%s/%s/%s/' % (
 sshExec = ''
 scpExec = ''
 scpHost = ''
-softwareVersion = 1
+softwareVersion = 2
 
 
 def init(user='machinekit', password='machinekit', host='192.168.7.2', rsaKey='~/.ssh/sandy-box_rsa'):
@@ -1128,55 +1128,51 @@ def main():
                         '/etc/udev/rules.d/70-persistent-net.rules')
             updateUuid()
 
-        if active_version == 'default':
-            updateHostGitRepo('thecooltool', 'querierd',
-                              '~/bin/querierd', ['sudo make install'])
+        if version < 2:
+            aptOfflineUpdate()
+            # force update of Machinekit
+            aptOfflineInstallPackages(
+                'machinekit machinekit-rt-preempt', force=True)
+            # install videoserver_pub dependencies
+            aptOfflineInstallPackages(
+                'libopencv-dev libboost-program-options-dev libboost-log-dev protobuf-compiler clang')
 
+        # common packages
+        updateHostGitRepo('thecooltool', 'querierd',
+                          '~/bin/querierd', ['sudo make install'])
+        updateHostGitRepo('machinekit', 'videoserver_pub', '~/bin/videoserver-pub',
+                          ['cmake . -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', 'make', 'sudo make install'])
+
+        updateHostGitRepo('thecooltool', 'example-gcode',
+                          '~/nc_files/examples', [])
+
+        if active_version == 'default':
             updateHostGitRepo('thecooltool', 'Cetus',
                               '~/Cetus', [], branch='v2')
             updateHostGitRepo('thecooltool', 'Machineface',
                               '~/Machineface', [], branch='v2')
-            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
-                              ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
             updateHostGitRepo('thecooltool', 'machinekit-configs',
                               '~/machinekit-configs', [], branch='v2')
-            updateHostGitRepo('thecooltool', 'example-gcode',
-                              '~/nc_files/examples', [])
 
         elif active_version == 'sandybox':
-            updateHostGitRepo('thecooltool', 'querierd',
-                              '~/bin/querierd', ['sudo make install'])
-
             updateHostGitRepo('thecooltool', 'Cetus',
                               '~/Cetus', [], branch='v3')
             updateHostGitRepo('thecooltool', 'Machineface',
                               '~/Machineface', [], branch='v3')
-            updateHostGitRepo('thecooltool', 'mjpeg-streamer', '~/bin/mjpeg-streamer',
-                              ['make -C mjpg-streamer-experimental', 'sudo make -C mjpg-streamer-experimental install'])
             updateHostGitRepo('thecooltool', 'machinekit-configs',
                               '~/machinekit-configs', [], branch='v3')
-            updateHostGitRepo('thecooltool', 'example-gcode',
-                              '~/nc_files/examples', [])
 
         elif active_version == 'experimental':
             aptOfflineUpdate()
             # force update of Machinekit
             aptOfflineInstallPackages(
                 'machinekit machinekit-rt-preempt', force=True)
-            aptOfflineInstallPackages(
-                'libopencv-dev libboost-program-options-dev libboost-log-dev protobuf-compiler clang')
-            updateHostGitRepo('machinekit', 'videoserver_pub', '~/bin/videoserver-pub',
-                  ['cmake . -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', 'make', 'sudo make install'])
-            updateHostGitRepo('thecooltool', 'querierd',
-                              '~/bin/querierd', ['sudo make install'])
 
             updateHostGitRepo('thecooltool', 'Cetus', '~/Cetus', [''])
             updateHostGitRepo('machinekit', 'Machineface',
                               '~/Machineface', [''])
             updateHostGitRepo('thecooltool', 'machinekit-configs',
                               '~/machinekit-configs', [], branch='develop')
-            updateHostGitRepo('thecooltool', 'example-gcode',
-                              '~/nc_files/examples', [])
 
         if version != softwareVersion:
             updateSoftwareVersion(softwareVersion)
