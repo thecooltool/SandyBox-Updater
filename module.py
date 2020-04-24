@@ -418,13 +418,16 @@ def unzipOnHost(zipFile, remotePath):
 
 def configureDpkg():
     info('Configuring dpkg ... ')
-    output, retcode = runSshCommand(
-        'DEBIAN_FRONTEND=noninteractive sudo dpkg --configure -a --force-confold --force-confdef')
+    cmd = 'DEBIAN_FRONTEND=noninteractive sudo dpkg --configure -a --force-confold --force-confdef'
+    output, retcode = runSshCommand(cmd)
     if retcode != 0:
-        exitScript(' failed\n')
-        return
-    else:
-        info('done\n')
+        time.sleep(5)  # wait in case of dpkg lock for example
+        output, retcode = runSshCommand(cmd)
+        if retcode != 0:
+            exitScript(' failed, please try again later\n')
+            return
+
+    info('done\n')
 
 
 def checkPackage(name):
