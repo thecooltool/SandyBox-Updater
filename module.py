@@ -735,7 +735,7 @@ def updateLocalGitRepo(user, repo, path, branch='master'):
 
         if os.path.exists(path):
             shutil.rmtree(path)
-        os.makedirs(path)
+        # os.makedirs(path)
 
         if os.path.exists(tmpPath):
             shutil.rmtree(tmpPath)
