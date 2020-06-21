@@ -1182,6 +1182,7 @@ def main():
     except:
         print(traceback.format_exc())
         info("Error during execution of update script.")
+        info("Please try once more.")
         sys.exit(1)
     else:
         info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
