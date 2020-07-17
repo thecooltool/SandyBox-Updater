@@ -418,13 +418,16 @@ def unzipOnHost(zipFile, remotePath):
 
 def configureDpkg():
     info('Configuring dpkg ... ')
-    output, retcode = runSshCommand(
-        'DEBIAN_FRONTEND=noninteractive sudo dpkg --configure -a --force-confold --force-confdef')
+    cmd = 'DEBIAN_FRONTEND=noninteractive sudo dpkg --configure -a --force-confold --force-confdef'
+    output, retcode = runSshCommand(cmd)
     if retcode != 0:
-        exitScript(' failed\n')
-        return
-    else:
-        info('done\n')
+        time.sleep(5)  # wait in case of dpkg lock for example
+        output, retcode = runSshCommand(cmd)
+        if retcode != 0:
+            exitScript(' failed, please try again later\n')
+            return
+
+    info('done\n')
 
 
 def checkPackage(name):
@@ -732,7 +735,7 @@ def updateLocalGitRepo(user, repo, path, branch='master'):
 
         if os.path.exists(path):
             shutil.rmtree(path)
-        os.makedirs(path)
+        # os.makedirs(path)
 
         if os.path.exists(tmpPath):
             shutil.rmtree(tmpPath)
@@ -1179,6 +1182,7 @@ def main():
     except:
         print(traceback.format_exc())
         info("Error during execution of update script.")
+        info("Please try once more.")
         sys.exit(1)
     else:
         info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
